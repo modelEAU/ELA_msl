@@ -1,0 +1,113 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTNITROGEN
+#define OBJECTNITROGEN
+
+
+CLASS NITROGEN (* class = "detritus" *) EXTENDS SD WITH
+ {:
+ interface <- 
+ {
+ OBJ RESPIRATION_algae (* terminal = "in_3" *) "total respiration of all algae": RateProcess := {: causality <- "CIN" :};
+ OBJ RESPIRATION_animals (* terminal = "in_1" *) "total respiration of all animals": RateProcess := {: causality <- "CIN" :};
+   
+ OBJ Assimilation_NH4 (* terminal = "in_3" *) "NH4 assimilated by algae": RateProcess := {: causality <- "CIN" :};
+ OBJ Assimilation_NO3 (* terminal = "in_3" *) "NO3 assimilated by algae": RateProcess := {: causality <- "CIN" :};
+  
+ OBJ Nitrogen (* terminal = "out_1" *) "": Concentration := {: causality <- "COUT" :};
+ OBJ Ammonia_in (* terminal = "in_4" *) "": Concentration := {: causality <- "CIN" :};
+ OBJ Ammonia_out (* terminal = "out_1" *) "": Concentration := {: causality <- "COUT" :};
+ OBJ Nitrate_in (* terminal = "in_4" *) "": Concentration := {: causality <- "CIN" :};
+ OBJ Nitrate_out (* terminal = "out_1" *) "": Concentration := {: causality <- "COUT" :};
+ };
+ 
+ parameters <-
+ {
+ OBJ KNitri_bottom "max interfacial nitrification rate at sediment-water interface": Velocity:={:value<-0.1:};
+ OBJ KNitri_water "max nitrification rate at water column": RateCst:={:value<-0.3:};
+ OBJ KDNitri_bottom "max interfacial denitrification rate at sediment-water interface": Velocity:={:value<-0.2:};
+ OBJ KDNitri_water "max denitrification rate at water column": RateCst:={:value<-0.09:};
+ };
+ 
+ independent <- {  };
+ 
+ state <-
+ {
+ OBJ Ammonia  "NH4-N" : Concentration;
+ OBJ Nitrate  "NO3-N" : Concentration;
+ 
+ OBJ MIX_Ammonia "mixing rate of NH4-N": RateProcess;
+ OBJ AccMix_NH4in "Accumulation of mixing NH4-N entering": Real; 
+ OBJ AccMix_NH4out "Accumulation of mixing NH4-N exiting": Real;
+ OBJ MIX_Nitrate "mixing rate of NO3-N": RateProcess;
+ OBJ AccMix_NO3in "Accumulation of mixing NO3-N entering": Real; 
+ OBJ AccMix_NO3out "Accumulation of mixing NO3-N exiting": Real;
+
+  
+  //NITRIFICATION//
+  
+ OBJ Nitrification "nitrification rate": RateProcess;
+  
+  //DENITRIFICATION//
+  
+ OBJ Denitrification "denitrification rate": RateProcess;
+ OBJ NDenit "denitrification": Real;
+   
+ };
+ 
+ equations <-
+ {
+ interface.Nitrogen = state.Ammonia + state.Nitrate;
+ interface.Ammonia_out = state.Ammonia;
+ interface.Nitrate_out = state.Nitrate;
+ 
+ //AMMONIA//
+ 
+ DERIV(state.Ammonia,[independent.t]) = (state.DECOMP_DD + state.DECOMP_PD + state.DECOMP_SD + interface.RESPIRATION_algae + interface.RESPIRATION_animals + interface.EXCRETION_animals ) * parameters.N2OM - state.Nitrification - interface.Assimilation_NH4 + state.MIX_Ammonia;
+ 
+ state.MIX_Ammonia = IF ((fabs(parameters.Temperature - parameters.T_strat) > 3) && (parameters.Temperature > 4)) 
+ 			  	   	 	THEN 0
+				   	 	ELSE parameters.QMix * (interface.Ammonia_in - state.Ammonia) / parameters.VTot;
+				   
+ DERIV(state.AccMix_NH4in,[independent.t]) = IF ((interface.Ammonia_in - state.Ammonia) < 0)
+ 			  	   						  	    THEN 0
+				   							    ELSE state.MIX_Ammonia;
+ 
+ DERIV(state.AccMix_NH4out,[independent.t]) = IF ((interface.Ammonia_in - state.Ammonia) > 0)
+ 			  	   						  	 	THEN 0
+				   							 	ELSE state.MIX_Ammonia;
+																   
+ //NITRATE//
+ 
+ DERIV(state.Nitrate,[independent.t]) = state.Nitrification - state.Denitrification - interface.Assimilation_NO3 + state.MIX_Nitrate;
+ 
+ state.MIX_Nitrate = IF ((fabs(parameters.Temperature - parameters.T_strat) > 3) && (parameters.Temperature > 4)) 
+ 			  	   	 	THEN 0
+				   		ELSE parameters.QMix * (interface.Nitrate_in - state.Nitrate) / parameters.VTot;
+				   
+ DERIV(state.AccMix_NO3in,[independent.t]) = IF ((interface.Nitrate_in - state.Nitrate) < 0)
+ 			  	   						  	    THEN 0
+				   							    ELSE state.MIX_Nitrate;
+ 
+ DERIV(state.AccMix_NO3out,[independent.t]) = IF ((interface.Nitrate_in - state.Nitrate) > 0)
+ 			  	   						  	 	THEN 0
+				   							 	ELSE state.MIX_Nitrate;
+												 				   
+ //NITRIFICATION//
+ 
+ state.Nitrification = (parameters.KNitri_bottom * state.DOCorrection_bottom * parameters.WaterSed + parameters.KNitri_water * state.DOCorrection_water) * state.TCorr * state.pHCorr * state.Ammonia; //UNIT N//
+ 
+ //DENITRIFICATION//
+ 
+ state.Denitrification = (parameters.KDNitri_bottom * (1 - state.DOCorrection_bottom) * parameters.WaterSed + parameters.KDNitri_water * (1 - state.DOCorrection_water)) * state.TCorr * state.pHCorr * state.Nitrate;
+ 
+ DERIV(state.NDenit,[independent.t]) = state.Denitrification;
+ };
+ 
+ :};
+
+ #endif 

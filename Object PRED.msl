@@ -1,0 +1,339 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTPRED
+#define OBJECTPRED
+
+CLASS PRED (* class = "predator" *) "" EXTENDS LIMITATIONS WITH 
+
+ {:
+ interface <- 
+ {
+ OBJ PD (* terminal = "in_1" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Bio_species_in (* terminal = "in_1" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Bio_prey1 (* terminal = "in_1" *) "" : Concentration [5;]:= {: causality <- "CIN" :};
+ OBJ Bio_prey2 (* terminal = "in_1" *) "" : Concentration [5;]:= {: causality <- "CIN" :};
+ OBJ PREDATION_in (* terminal = "in_1" *) "" : SRateProcess [5;]:= {: causality <- "CIN" :}; 
+ 
+ OBJ MORTALITY_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :};
+ OBJ EXCRETION_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :};
+ OBJ INGESTION_PD_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :};
+ OBJ DEFECATION_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :};
+ OBJ RESPIRATION_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :};
+ OBJ Bio_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ INGESTION_prey1_out (* terminal = "out_1" *) "" : SRateProcess [5;]:= {: causality <- "COUT" :};
+ OBJ INGESTION_prey2_out (* terminal = "out_1" *) "" : SRateProcess [5;]:= {: causality <- "COUT" :};
+ 
+ OBJ RECRUITMENT_in (* terminal = "in_1" *) "" : SRateProcess := {: causality <- "CIN" :};
+ OBJ GameteLoss_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :};
+ OBJ PROMOTION_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :}; 
+ OBJ Recruit_out (* terminal = "out_1" *) "" : SRateProcess := {: causality <- "COUT" :}; 
+ };
+ 
+ parameters <-
+ {
+ OBJ Nr "fish nr NECESSARY TO FILL IN" : Real:={:value<-1:};
+ 
+ //INGESTION//
+ OBJ CA "max ingestion rate for a 1-g fish at optimal temperature" : RateCst:={:value<-0.36:};
+ OBJ MeanWeight "mean weight for a given fish species" : Mass:={:value<-2:};
+ OBJ CB "slope of the allometric function for a given fish species" : Real:={:value<--0.31:};
+ 
+ OBJ Pref_prey1 "preference vector for ingestion of prey1 nr i" : Real[5;];
+ OBJ Pref_prey2 "preference vector for ingestion of prey2 nr i" : Real[5;];
+ OBJ Pref_PD "preference for PD" : Real:={:value<-0:};
+ 
+ OBJ FHalfSat_prey1 "half saturation ct for feeding of prey1" : Concentration[5;];
+ OBJ FHalfSat_prey2 "half saturation ct for feeding of prey2" : Concentration[5;];
+ OBJ FHalfSat_PD "Half saturation ct for ingestion of PD" : Concentration:={:value<-0.025:};
+ 
+ OBJ Bmin_prey1 "min prey1 biomass to begin feeding" : Concentration[5;];
+ OBJ Bmin_prey2 "min prey2 biomass to begin feeding" : Concentration[5;];
+ OBJ Bmin_PD "minimum PD concentration to begin feeding" : Concentration:={:value<-0.05:};
+ 
+ //DEFECATION//
+ OBJ EgestCoeff_prey1 "fraction egested of ingested prey1" : Real[5;];
+ OBJ EgestCoeff_prey2 "fraction egested of ingested prey2" : Real[5;];
+ OBJ EgestCoeff_PD "egested portion of ingested PD" : Real:={:value<-0.1:};
+ 
+ //RESPIRATION//
+ OBJ RB "slope of the allometric function for a given fish species" : Real:={:value<--0.2:};
+ OBJ RA "routine respiration rate in g_oxygen/g_OM.d" : RateCst:={:value<-0.0148:};
+ OBJ IncrResp "increase in respiration at carrying capacity" : Real:={:value<-0.5:};
+ OBJ KCap "carrying capacity" : SurfaceDensity:={:value<-0.8:};
+ 
+ OBJ dKResp "respiratory cost for food processing" : Real:={:value<-0.15:}; 
+ OBJ Activity "a factor for respiratory loss associated with swimming" : Real:={:value<-1:};
+ 
+ //EXCRETION//
+ OBJ KExcr "proportionality constant for excretion:respiration" : Real:={:value<-0.05:};
+ 
+ //MORTALITY// 
+ OBJ OLIMIT "minimum oxygen concentration" : Concentration:={:value<-0:};
+ OBJ KMort "intrinsic mortality rate" : RateCst:={:value<-0.01:};
+ 
+ //GameteLoss//
+ OBJ GMort "gamete mortality rate" : RateCst:={:value<-0.9:};
+ OBJ IncrMort "gamete mortality rate" : RateCst:={:value<-0.5:};
+ OBJ PctGamete "fraction of biomass in gametes. 0 for juveniles" : Real:={:value<-0.09:};
+ OBJ SpawningStart "Date when spawning starts" : Real:={:value<-1:};
+ OBJ SpawningEnd "Date when spawning ends" : Real:={:value<-2:};
+ 
+ 
+ //PROMOTION//
+ OBJ KPro "fraction of growth that goes to promotion. 0 for adults" : Real:={:value<-0.5:};
+ };
+ 
+ independent <- { };
+ 
+ state <-
+ {
+ OBJ Bio "biomass concentration of fish nr i" : SurfaceDensity;
+  
+ //INGESTION//
+ OBJ INGESTION "INGESTION" : SRateProcess;
+ OBJ INGESTION_prey1 "ingestion of prey i" : SRateProcess[5;];
+ OBJ INGESTION_prey1_total "how much this grazer eats from algae biomass" : SRateProcess;
+ OBJ INGESTION_prey2 "ingestion of prey i" : SRateProcess[5;];
+ OBJ INGESTION_prey2_total "how much this grazer eats from algae biomass" : SRateProcess;
+ OBJ INGESTION_PD "how much this grazer eats from PD" : SRateProcess;
+ 
+ OBJ CMax "max ingestion rate" : RateCst;
+ 
+ OBJ Food_prey1 "prey nr i available for feeding" : Concentration[5;];
+ OBJ Food_prey2 "prey nr i available for feeding" : Concentration[5;];
+ OBJ Food_PD "PD available for feeding" : Concentration;
+  
+ OBJ SatFeeding_prey1 "saturation-prey feeding kinetic factor" : Real[5;];
+ OBJ SatFeeding_prey2 "saturation-prey feeding kinetic factor" : Real[5;];
+ OBJ SatFeeding_PD "saturation-PD feeding kinetic factor" : Real;
+ 
+ OBJ Help1 "" : Real;
+ OBJ Help2 "" : Real;
+ OBJ Helpful "" : Real; 
+ 
+ OBJ Preference_prey1 "preference for prey1 nr i": Real[5;];
+ OBJ PrefPrey1 "preference for prey1 nr i when above Bmin": Real[5;];
+ OBJ Pref_prey1_total "total preference for prey1 biomass when above Bmin": Real;
+ OBJ Preference_prey2 "preference for prey2 nr i": Real[5;];
+ OBJ PrefPrey2 "preference for prey2 nr i when above Bmin": Real[5;];
+ OBJ Pref_prey2_total "total preference for prey2 biomass when above Bmin": Real;
+ OBJ Preference_PD "preference for PD": Real;
+ OBJ PrefPD "preference for PD when above Bmin": Real; 
+
+ //DEFECATION//
+ OBJ DEFECATION "DEFECATION" : SRateProcess;
+ OBJ DEFECATION_prey1_total "total defecation of ingested prey1 i" : SRateProcess;
+ OBJ DEFECATION_prey1 "defecation of ingested prey1 i" : SRateProcess[5;];
+ OBJ DEFECATION_prey2_total "total defecation of ingested prey2 i" : SRateProcess;
+ OBJ DEFECATION_prey2 "defecation of ingested prey2 i" : SRateProcess[5;];
+ OBJ DEFECATION_PD "defecation of PD consumed by this grazer" : SRateProcess;
+ 
+ //RESPIRATION//
+ OBJ RESPIRATION "RESPIRATION" : SRateProcess;
+ 
+ OBJ StdResp "standard respiration" : SRateProcess;
+ OBJ DensityDep "density-dependent respiration factor" : Real;
+ OBJ RoutineResp "routine respiration rate" : RateCst;
+ 
+ OBJ ActiveResp "respiration loss associated with swimming" : SRateProcess;
+ OBJ SpecDynAction "respiration loss for food processing" : SRateProcess;
+   
+ //EXCRETION//
+ OBJ EXCRETION "EXCRETION" : SRateProcess;
+ 
+ //MORTALITY// 
+ OBJ MORTALITY "intrinsic mortality" : SRateProcess;
+ OBJ Dpred "environmental mortality rate" : RateCst;
+ 
+ //GameteLoss//
+ OBJ GameteLoss "loss rate of gametes" : SRateProcess;
+ OBJ FracAdults "fraction of biomass that is adult" : Real;
+ OBJ Capacity "carrying capacity" : SurfaceDensity;
+ OBJ GameteMort "total mortality rate of gametes" : RateCst;
+ 
+ //Recruitment//
+ OBJ Recruit "biomass gained from successful spawning" : SRateProcess;
+ 
+ //PROMOTION//
+ OBJ PROMOTION "rate of promotion" : SRateProcess;
+ };
+ 
+ equations <-
+ {
+ DERIV(state.Bio,[independent.t])= state.INGESTION  - state.DEFECATION - state.RESPIRATION - state.EXCRETION - state.MORTALITY - interface.PREDATION_in[parameters.Nr] - state.GameteLoss + interface.RECRUITMENT_in - state.PROMOTION;
+  
+ interface.Bio_out = state.Bio;
+ 
+ {FOREACH count IN {1 .. 5}:interface.INGESTION_prey1_out[count] = state.INGESTION_prey1[count];};
+ {FOREACH count IN {1 .. 5}:interface.INGESTION_prey2_out[count] = state.INGESTION_prey2[count];};
+ interface.INGESTION_PD_out = state.INGESTION_PD;	
+ interface.DEFECATION_out = state.DEFECATION; 
+ interface.RESPIRATION_out = state.RESPIRATION;
+ interface.EXCRETION_out = state.EXCRETION;
+ interface.MORTALITY_out = state.MORTALITY;
+ 
+ interface.GameteLoss_out = state.GameteLoss;
+ interface.Recruit_out = state.Recruit;
+ interface.PROMOTION_out = state.PROMOTION;
+ 
+ //INGESTION//
+ state.INGESTION = state.INGESTION_prey1_total + state.INGESTION_prey2_total + state.INGESTION_PD;
+  
+ //Prey1//
+ state.INGESTION_prey1_total =SUMOVER count IN {1 .. 5}: state.INGESTION_prey1[count];
+ 
+ {FOREACH count IN {1 .. 5}:state.INGESTION_prey1[count] = 
+ 		  IF (state.CMax * state.SatFeeding_prey1[count] * state.Bio * state.TCorr >= state.Food_prey1[count])
+ 		  THEN state.Food_prey1[count]
+ 		  ELSE state.CMax * state.SatFeeding_prey1[count] * state.Bio * state.TCorr;};
+		  
+ state.CMax = parameters.CA * pow(parameters.MeanWeight,parameters.CB);
+ 
+ {FOREACH count IN {1 .. 5}:state.SatFeeding_prey1[count] = 
+ 		  IF (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD <= 0)
+		  THEN 0
+		  ELSE state.Preference_prey1[count] * state.Food_prey1[count] / (state.Helpful + parameters.FHalfSat_prey1[count]);};
+ 					 					  
+ {FOREACH count IN {1 .. 5}: state.Preference_prey1[count] = 
+ 		  IF (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD <= 0)
+		  THEN 0
+		  ELSE parameters.Pref_prey1[count] / (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD);};
+ 
+ {FOREACH count IN {1 .. 5}:state.PrefPrey1[count] = 
+ 		  IF (interface.Bio_prey1[count] <= parameters.Bmin_prey1[count])
+		  THEN 0
+		  ELSE parameters.Pref_prey1[count];};
+ 
+ state.Pref_prey1_total = SUMOVER count IN {1 .. 5}: state.PrefPrey1[count];
+ 
+ state.Helpful = state.Help1 + state.Help2 + state.Preference_PD * state.Food_PD;
+ 
+ state.Help1 = SUMOVER count IN {1 .. 5}:state.Food_prey1[count] * state.Preference_prey1[count];
+ 
+ {FOREACH count IN {1 .. 5}:state.Food_prey1[count] = 
+ 		  IF (interface.Bio_prey1[count] <= parameters.Bmin_prey1[count])
+		  THEN 0
+		  ELSE (interface.Bio_prey1[count] - parameters.Bmin_prey1[count]);};
+//Prey2//
+ state.INGESTION_prey2_total =SUMOVER count IN {1 .. 5}: state.INGESTION_prey2[count];
+ 
+ {FOREACH count IN {1 .. 5}:state.INGESTION_prey2[count] = 
+ 		  IF (state.CMax * state.SatFeeding_prey2[count] * state.Bio * state.TCorr >= state.Food_prey2[count])
+ 		  THEN state.Food_prey2[count]
+ 		  ELSE state.CMax * state.SatFeeding_prey2[count] * state.Bio * state.TCorr;};
+ 
+ {FOREACH count IN {1 .. 5}:state.SatFeeding_prey2[count] = 
+ 		  IF (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD <= 0)
+		  THEN 0
+		  ELSE state.Preference_prey2[count] * state.Food_prey2[count] / (state.Helpful + parameters.FHalfSat_prey2[count]);};
+ 					 					  
+ {FOREACH count IN {1 .. 5}: state.Preference_prey2[count] = 
+ 		  IF (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD <= 0)
+		  THEN 0
+		  ELSE parameters.Pref_prey2[count] / (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD);};
+ 
+ {FOREACH count IN {1 .. 5}:state.PrefPrey2[count] = 
+ 		  IF (interface.Bio_prey2[count] <= parameters.Bmin_prey2[count])
+		  THEN 0
+		  ELSE parameters.Pref_prey2[count];};
+ 
+ state.Pref_prey2_total = SUMOVER count IN {1 .. 5}: state.PrefPrey2[count];
+ 
+ state.Help2 = SUMOVER count IN {1 .. 5}:state.Food_prey2[count] * state.Preference_prey2[count];
+ 
+ {FOREACH count IN {1 .. 5}:state.Food_prey2[count] = 
+ 		  IF (interface.Bio_prey2[count] <= parameters.Bmin_prey2[count])
+		  THEN 0
+		  ELSE (interface.Bio_prey2[count] - parameters.Bmin_prey2[count]);};
+		  		  
+ //PD//
+ state.INGESTION_PD = IF (state.CMax * state.SatFeeding_PD * state.Bio * state.TCorr >= state.Food_PD)
+ 		  			  THEN state.Food_PD
+ 		  			  ELSE state.CMax * state.SatFeeding_PD * state.Bio * state.TCorr;
+ 
+ state.SatFeeding_PD = IF (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD <= 0)
+		  			   THEN 0
+					   ELSE state.Preference_PD * state.Food_PD / (state.Helpful + parameters.FHalfSat_PD);
+ 
+ state.Preference_PD = IF (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD <= 0)
+		  			   THEN 0
+		  			   ELSE parameters.Pref_PD / (state.Pref_prey1_total + state.Pref_prey2_total + state.PrefPD);
+					   
+ state.PrefPD = IF (interface.PD <= parameters.Bmin_PD)
+	 	  		 THEN 0
+	 	  		 ELSE parameters.Pref_PD;
+ 
+ state.Food_PD = IF (interface.PD <= parameters.Bmin_PD)
+	 	  	     THEN 0
+	 	  		 ELSE(interface.PD - parameters.Bmin_PD);
+ 
+ //DEFECATION//  
+  state.DEFECATION = state.DEFECATION_prey1_total + state.DEFECATION_prey2_total + state.DEFECATION_PD; 
+  
+  state.DEFECATION_prey1_total = SUMOVER count IN {1 .. 5}: state.DEFECATION_prey1[count];
+  {FOREACH count IN {1 .. 5}:state.DEFECATION_prey1[count] = parameters.EgestCoeff_prey1[count] * state.INGESTION_prey1[count];};
+  
+  state.DEFECATION_prey2_total = SUMOVER count IN {1 .. 5}: state.DEFECATION_prey2[count];
+  {FOREACH count IN {1 .. 5}:state.DEFECATION_prey2[count] = parameters.EgestCoeff_prey2[count] * state.INGESTION_prey2[count];};
+   
+  state.DEFECATION_PD = parameters.EgestCoeff_PD * state.INGESTION_PD;
+  
+ //RESPIRATION//
+ state.RESPIRATION = (state.StdResp + state.ActiveResp + state.SpecDynAction);
+ 
+ state.StdResp = state.RoutineResp * pow(parameters.MeanWeight,parameters.RB) * state.DensityDep * state.TCorr * state.Bio;
+ 
+ state.RoutineResp = parameters.RA * 1.5;
+ 
+ state.DensityDep = 1 + (parameters.IncrResp * state.Bio / parameters.KCap);
+ 
+ state.ActiveResp = parameters.Activity * state.Bio;
+ 
+ state.SpecDynAction = parameters.dKResp * (state.INGESTION - state.DEFECATION);
+			 
+ //EXCRETION//
+ state.EXCRETION = parameters.KExcr * state.RESPIRATION;
+ 
+ //MORTALITY//
+ state.MORTALITY = IF (parameters.oxygen_water <= parameters.OLIMIT)
+ 			   THEN 1 * state.Bio
+ 			   ELSE IF (state.Dpred > 1)
+               		THEN 1 * state.Bio
+		    		ELSE state.Dpred * state.Bio;
+ 				
+ state.Dpred = IF (parameters.Temperature > parameters.TMax)
+			   THEN parameters.KMort +  exp(parameters.Temperature - parameters.TMax)/2 
+			   ELSE parameters.KMort;
+								
+ //GameteLoss//
+ state.GameteLoss = IF ((parameters.SpawningStart <= independent.t) && (independent.t <= parameters.SpawningEnd))
+ 				  	THEN state.GameteMort * state.FracAdults * parameters.PctGamete * state.Bio
+					ELSE 0; 
+ 
+ state.GameteMort = IF ((parameters.GMort + parameters.IncrMort) > 1)
+ 				  	THEN 1
+					ELSE parameters.GMort + parameters.IncrMort;
+ 
+ state.FracAdults = 1 - (state.Capacity / parameters.KCap);
+ 
+ state.Capacity = IF ((state.Bio > parameters.KCap)|| (state.Bio <= 0)) 
+ 				  THEN 0
+				  ELSE parameters.KCap - state.Bio;
+ 
+ //RECRUITMENT//
+ state.Recruit = IF ((parameters.SpawningStart <= independent.t) && (independent.t <= parameters.SpawningEnd))
+ 				 THEN (1 - state.GameteMort) *  state.FracAdults * parameters.PctGamete * state.Bio
+				 ELSE 0; 
+   
+ //PROMOTION//
+ state.PROMOTION = IF ((state.INGESTION - state.DEFECATION - state.RESPIRATION - state.EXCRETION - state.GameteLoss)<= 0)
+ 				   THEN 0
+				   ELSE parameters.KPro * (state.INGESTION - state.DEFECATION - state.RESPIRATION - state.EXCRETION - state.GameteLoss);
+ 
+ };
+ :};
+ #endif

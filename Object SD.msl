@@ -1,0 +1,52 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTSD
+#define OBJECTSD
+
+
+CLASS SD (* class = "detritus" *) EXTENDS PD WITH
+ {:
+ interface <- 
+ { 
+ OBJ SINK_algae (* terminal = "in_3" *) "": RateProcess := {: causality <- "CIN" :};
+ OBJ DEFECATION_animals (* terminal = "in_1" *) "": RateProcess := {: causality <- "CIN" :};
+   
+ OBJ SD_in (* terminal = "in_4" *) "": Concentration := {: causality <- "CIN" :};
+ OBJ SD_out (* terminal = "out_1" *) "": Concentration := {: causality <- "COUT" :};
+ OBJ SD_strat (* terminal = "out_1" *) "": Concentration := {: causality <- "COUT" :};
+ };
+ 
+ parameters <- { };
+ 
+ independent <- {  };
+ 
+ state <-
+ {
+ OBJ DECOMP_SD "remineralisation rate of SD": RateProcess;
+ OBJ SD "Sedimented detritus": Concentration;
+ OBJ Strat_in "stratified detritus entering": Real;
+ OBJ Strat_out "stratified detritus exiting": Real; 
+ };
+  
+ equations <-
+ {
+ DERIV(state.SD,[independent.t])= (interface.DEFECATION_animals + interface.SINK_algae + state.SEDIMENTATION) * (1 - parameters.VOffShore / parameters.VStrat) - state.DECOMP_SD + interface.SD_in;
+ 
+ state.DECOMP_SD = (parameters.DecayMax_bottom * parameters.WaterSed * state.DOCorrection_bottom + parameters.DecayMax_water_PD * state.DOCorrection_water) * state.DecTCorr * state.pHCorr * state.SD;
+ 
+ interface.SD_out = state.SD;
+ 
+ interface.SD_strat = (interface.DEFECATION_animals + interface.SINK_algae + state.SEDIMENTATION) * (parameters.VOffShore / parameters.VStrat);
+
+ DERIV(state.Strat_in,[independent.t]) = interface.SD_in;
+ 
+ DERIV(state.Strat_out,[independent.t]) = interface.SD_strat;
+ };
+ 
+ :};
+
+ #endif 

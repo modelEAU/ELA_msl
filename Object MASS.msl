@@ -1,0 +1,46 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTMASS
+#define OBJECTMASS
+
+
+CLASS MASS (* class = "detritus" *)
+
+EXTENDS PHOSPHORUS WITH 
+
+ {:
+ interface <- 
+ {  
+ OBJ Bio_algae (* terminal = "in_3" *) "total algae biomass": Concentration := {: causality <- "CIN" :};
+ OBJ Bio_animals (* terminal = "in_1" *) "total animal biomass": Concentration := {: causality <- "CIN" :};
+ };
+ 
+ parameters <- { };
+ 
+ independent <- {  };
+ 
+ state <-
+ {
+ OBJ Ntest"TESTING VAR FOR N MASS CONSERVATION (little loss for denitrif)" : Concentration;
+ OBJ Ptest"TESTING VAR FOR P MASS CONSERVATION" : Concentration;
+ };
+ 
+ equations <-
+ {
+  
+ //MASS BALANCE//
+  
+ state.Ntest = (interface.Bio_algae + interface.Bio_animals + state.DD - state.AccMix_DDin - state.AccMix_DDout + state.PD + state.SD - state.Strat_in + state.Strat_out) * parameters.N2OM + state.Ammonia - state.AccMix_NH4in - state.AccMix_NH4out + state.Nitrate - state.AccMix_NO3in - state.AccMix_NO3out + state.NDenit;
+ state.Ptest = (interface.Bio_algae + interface.Bio_animals + state.DD - state.AccMix_DDin - state.AccMix_DDout + state.PD + state.SD - state.Strat_in + state.Strat_out) * parameters.P2OM + state.Phosphate - state.AccMix_Pin - state.AccMix_Pout;
+ };
+ 
+ :};
+
+ #endif 
+
+ 
+ 

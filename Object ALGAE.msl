@@ -1,0 +1,252 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTALGAE
+#define OBJECTALGAE
+
+
+CLASS ALGAE (* class = "phyto" *) "" EXTENDS LIMITATIONS WITH 
+ {:
+ interface <- 
+ {
+ OBJ Nitrogen (* terminal = "in_3" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Ammonia (* terminal = "in_3" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Nitrate (* terminal = "in_3" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Phosphorus (* terminal = "in_3" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Extinct (* terminal = "in_3" *) "" : LightExtinct := {: causality <- "CIN" :};
+ 
+ OBJ Nitrogen_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Ammonia_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Nitrate_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Phosphorus_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Extinct_out (* terminal = "out_2" *) "" : LightExtinct := {: causality <- "COUT" :}; 
+ 
+ OBJ MORTALITY_in (* terminal = "in_3" *)"" : RateProcess := {: causality <- "CIN" :};
+ OBJ EXCRETION_in (* terminal = "in_3" *)"" : RateProcess := {: causality <- "CIN" :};
+ OBJ SINK_in (* terminal = "in_3" *)"" : RateProcess := {: causality <- "CIN" :};
+ OBJ RESPIRATION_in (* terminal = "in_3" *)"" : RateProcess := {: causality <- "CIN" :};
+ OBJ Assimilation_NH4_in (* terminal = "in_3" *)"" : RateProcess := {: causality <- "CIN" :};
+ OBJ Assimilation_NO3_in (* terminal = "in_3" *)"" : RateProcess := {: causality <- "CIN" :};
+ OBJ Assimilation_PO4_in (* terminal = "in_3" *)"" : RateProcess := {: causality <- "CIN" :};
+   
+ OBJ MORTALITY_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ EXCRETION_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ SINK_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ RESPIRATION_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ Assimilation_NH4_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ Assimilation_NO3_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ Assimilation_PO4_out (* terminal = "out_2" *) "" : Real := {: causality <- "COUT" :};
+ 
+ OBJ Bio_algae_in (* terminal = "in_3" *) "" : Concentration [5;]:= {: causality <- "CIN" :};
+ OBJ Bio_algae_out (* terminal = "out_2" *) "" : Concentration [5;]:= {: causality <- "COUT" :};
+    
+ OBJ PREDATION_in (* terminal = "in_3" *) "" : RateProcess [5;]:= {: causality <- "CIN" :};
+ OBJ PREDATION_out (* terminal = "out_2" *) "" : RateProcess [5;]:= {: causality <- "COUT" :};
+ };
+  
+ parameters <-
+ {
+  OBJ NrOfAlgae "algae nr NECESSARY TO FILL IN" : Real:={:value<-0:};
+  
+  //PHOTOSYNTHESIS//
+ 
+  OBJ PMax " maximum PS rate" : RateCst:={:value<-2.3:}; 
+    
+  OBJ KP "half saturation ct for P uptake" : Concentration:={:value<-0.04:}; 
+  OBJ KN "half saturation ct for N uptake" : Concentration:={:value<-0.02:}; 
+  
+  OBJ Photoperiod "fraction of the day with daylight" :Real:={:value<-0.5:};
+  OBJ PAR " photosynthetically active radiation (use same units as for LightSat) " : LightIntensity:={:value<-50:};
+  OBJ LightSat "light saturation level for PS" : LightIntensity:={:value<-60:}; 
+  
+  OBJ N2NH4 "ratio of nitrogen to ammonia" : Real:={:value<-0.78:};
+  OBJ N2NO3 "ratio of nitrogen to nitrate" : Real:={:value<-0.22:}; 
+     
+  //RESPIRATION//
+  
+  OBJ Resp "not used. Fraction of energy lost to dynamic action":Real:={:value<-0.006:};
+  OBJ Resp20 "respiration at 20°C": RateCst:={:value<-0.1:}; 
+  OBJ TResp "temperature coefficient for respiration":Real:={:value<-1.045:}; 
+    
+  //EXCRETION//
+  
+  OBJ KResp " excr/PS at optimal light level" : Real:={:value<-0.03:};
+     
+  //SINKING//
+  
+  OBJ ESed " exponential factor for additional sinking when stressed by light/nutrients ": Real:={:value<-0.7:};
+  OBJ KSed " sinking rate ": Velocity:={:value<-0.15:}; 
+  
+  //MORTALITY//
+  
+  OBJ KMort " intrinsic mortality rate" : RateCst:={:value<-0.004:}; 
+  OBJ Emort " approximate fraction killed per day with total limitation" : RateCst:={:value<-0.06:};
+  };
+  
+ independent <- { };
+  
+ state <-
+ { 
+  OBJ Bio "biomass concentration": Concentration;
+  OBJ Bio_algae "biomass concentration of all algae" : Real[5;];
+  
+  //PHOTOSYNTHESIS//
+  
+  OBJ PS "PHOTOSYNTHESIS" : RateProcess;
+ 
+  OBJ PProdLimit"limitation factor of PS": Real;
+  OBJ NutrLimit "limitation on PS due to nutrients (unitless)" :Real;
+  OBJ PLimit "limitation on PS due to phosphorus (-)" :Real;
+  OBJ NLimit "limitation on PS due to nitrogen (-)" :Real;
+  
+  OBJ LtLimit "light limitation":Real;
+  OBJ LtAtDepth "limitation due to insufficient light":Real;
+  OBJ LtAtTop "limitation due to light":Real;
+  OBJ Light "photosynthetically active radiation in the lake (use same units as for LightSat)":LightIntensity;
+  OBJ DepthAlgae "max depth where algae are":Length;
+  
+  OBJ NH4Pref "Preference N-assimilation factor": Real;
+  OBJ Assimilation_NH4 "assimilated NH4": RateProcess;
+  OBJ Assimilation_NO3 "assimilated NO3": RateProcess;
+  OBJ Assimilation_PO4 "assimilated PO4": RateProcess;
+   
+  //RESPIRATION//
+  
+  OBJ RESPMAX "maximum level of RESP" : RateProcess;
+  OBJ RESPIRATION "RESPIRATION" : RateProcess;
+    
+  //EXCRETION//
+  
+  OBJ EXCRETION "EXCRETION": RateProcess;
+  OBJ LightStress "complement of lightlimitation": Real;
+  
+  //MORTALITY//
+  
+  OBJ MORTALITY "MORTALITY": RateProcess;
+  OBJ Stress "due to subopt.light and nutrients (g/g/d)" :RateCst;
+  OBJ ExcessT "death because of temp (g/g/d)" :RateCst;
+     
+  //SINKING//
+  
+  OBJ SINK "SINKING": RateProcess;
+  OBJ SedAccel "increased sinking due to suboptimal conditions (nutrients, light)": Real;
+  };
+ 
+ equations <-
+ {
+  DERIV(state.Bio,[independent.t]) = state.PS - state.RESPIRATION - state.EXCRETION - state.MORTALITY - state.SINK - interface.PREDATION_in[parameters.NrOfAlgae];
+  
+  interface.Extinct_out = interface.Extinct;
+  interface.Ammonia_out = interface.Ammonia;
+  interface.Nitrate_out = interface.Nitrate;
+  interface.Nitrogen_out = interface.Nitrogen;
+  interface.Phosphorus_out = interface.Phosphorus;
+  
+  state.Bio_algae[parameters.NrOfAlgae] = state.Bio;
+  {FOREACH count IN {1 .. 5}:interface.Bio_algae_out[count] = interface.Bio_algae_in[count] + state.Bio_algae[count];};
+  {FOREACH count IN {1 .. 5}:interface.PREDATION_out[count] = interface.PREDATION_in[count];};
+ 
+  //PHOTOSYNTHESIS//
+  state.PS = parameters.PMax * state.PProdLimit * state.Bio; 
+  		   
+ 
+  state.PProdLimit = IF (state.NutrLimit * state.TCorr * state.LtLimit < 1)
+ 		   		   	 THEN state.NutrLimit * state.TCorr * state.LtLimit
+ 		   			 ELSE 1;
+ 		   
+  state.NLimit = IF (interface.Nitrogen / (interface.Nitrogen + parameters.KN) > 0.000000001)
+ 			   	 THEN interface.Nitrogen / (interface.Nitrogen + parameters.KN)
+ 			     ELSE 0;
+  
+  state.PLimit = IF (interface.Phosphorus / (interface.Phosphorus + parameters.KP) > 0.000000001)
+ 			   	 THEN interface.Phosphorus / (interface.Phosphorus + parameters.KP)
+ 			 	 ELSE 0;
+ 			  
+  state.NutrLimit = IF(state.PLimit < state.NLimit)
+  				    THEN state.PLimit
+ 				    ELSE state.NLimit;
+ 					   
+  
+  state.LtLimit = IF (0.85 * exp(1) * (parameters.Photoperiod * (state.LtAtDepth - state.LtAtTop)) / (interface.Extinct * (state.DepthAlgae - parameters.DepthTop))>=1)
+  				  THEN 1
+  				  ELSE 0.85 * exp(1) * (parameters.Photoperiod * (state.LtAtDepth - state.LtAtTop)) / (interface.Extinct * (state.DepthAlgae - parameters.DepthTop));
+  
+  //LtLimit can be used from the surface (DepthTop = 0) to any depth; it calculates the average limitation//			 
+  state.LtAtDepth = IF (exp( -state.Light / parameters.LightSat * exp(-interface.Extinct * parameters.DepthTop) * exp( -interface.Extinct * state.DepthAlgae)) < exp(-30))
+  			 	  	THEN 0
+  			 		ELSE exp( -state.Light / parameters.LightSat * exp(-interface.Extinct * parameters.DepthTop) * exp( -interface.Extinct * state.DepthAlgae));
+  
+  state.LtAtTop = IF (exp( -state.Light / parameters.LightSat * exp(-interface.Extinct * parameters.DepthTop)) < exp (-30))
+  			 	  THEN 0
+  			 	  ELSE exp( -state.Light / parameters.LightSat * exp(-interface.Extinct * parameters.DepthTop));
+  
+  state.Light = IF (parameters.Temperature >= 3)
+ 			   	THEN parameters.PAR
+			   	ELSE 0.3 * parameters.PAR;
+ 
+  state.DepthAlgae = IF (parameters.Temperature >= 3)
+ 			   	   	 THEN parameters.DepthBottom
+			   		 ELSE 2; 
+
+  
+  //ASSOCIATED ASSIMILATION//
+  state.Assimilation_NO3 = state.PS * parameters.N2OM * (1 - state.NH4Pref);
+  
+  state.Assimilation_NH4 = state.PS * parameters.N2OM * state.NH4Pref;
+  
+  state.NH4Pref = parameters.N2NH4 * interface.Ammonia * parameters.N2NO3 * interface.Nitrate / (parameters.KN + interface.Ammonia * parameters.N2NH4) / (parameters.KN + interface.Nitrate * parameters.N2NO3) + interface.Ammonia * parameters.N2NH4 * parameters.KN / (interface.Ammonia * parameters.N2NH4 + interface.Nitrate * parameters.N2NO3) / (parameters.KN + interface.Nitrate * parameters.N2NO3);
+  state.Assimilation_PO4 = parameters.P2OM * state.PS;
+  
+  interface.Assimilation_NH4_out = interface.Assimilation_NH4_in + state.Assimilation_NH4;
+  interface.Assimilation_NO3_out = interface.Assimilation_NO3_in + state.Assimilation_NO3;
+  interface.Assimilation_PO4_out = interface.Assimilation_PO4_in + state.Assimilation_PO4;
+  
+  
+  //RESPIRATION//
+  state.RESPIRATION = IF (parameters.Resp20 * pow(parameters.TResp,(parameters.Temperature - 20)) * state.Bio <= state.RESPMAX)
+  					  THEN parameters.Resp20 * pow(parameters.TResp,(parameters.Temperature - 20)) * state.Bio 
+  					  ELSE state.RESPMAX;
+  
+  state.RESPMAX = 0.6 * state.PS;  
+  
+  interface.RESPIRATION_out = interface.RESPIRATION_in + state.RESPIRATION;
+  
+  
+  //EXCRETION//
+  state.EXCRETION = parameters.KResp * state.LightStress * state.PS;
+  
+  state.LightStress = IF (1 - state.LtLimit < 0.0000000001) 
+ 			   		  THEN 0
+ 			   		  ELSE 1 - state.LtLimit;
+  
+  interface.EXCRETION_out = state.EXCRETION + interface.EXCRETION_in;
+  
+  
+  //MORTALITY//
+  state.MORTALITY = IF (parameters.KMort + state.ExcessT + state.Stress > 1)
+                 	THEN 1 * state.Bio
+ 		      		ELSE (parameters.KMort + state.ExcessT + state.Stress) * state.Bio;
+  				 
+  state.ExcessT = IF (parameters.Temperature >= parameters.TMax)
+ 				  THEN exp(parameters.Temperature - parameters.TMax) / 2 
+ 				  ELSE 0;
+  				 
+  state.Stress = 1 - exp(-parameters.Emort * (1 - state.NutrLimit * state.LtLimit));
+ 				 
+  interface.MORTALITY_out = state.MORTALITY + interface.MORTALITY_in;
+  
+
+  //SINKING//
+  state.SINK = parameters.KSed / parameters.ZMean * state.SedAccel * state.Bio;
+  
+  state.SedAccel = exp (parameters.ESed * (1 - state.LtLimit * state.NutrLimit * state.TCorr));
+  
+  interface.SINK_out = interface.SINK_in + state.SINK;
+  };
+ 
+ :};
+
+ #endif 

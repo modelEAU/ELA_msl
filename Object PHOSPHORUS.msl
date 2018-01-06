@@ -1,0 +1,58 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTPHOSPHORUS
+#define OBJECTPHOSPHORUS
+
+
+CLASS PHOSPHORUS (* class = "detritus" *) EXTENDS NITROGEN WITH
+ {:
+ interface <- 
+ { 
+ OBJ  Assimilation_PO4 (* terminal = "in_3" *) "PO4 assimilated by algae": RateProcess := {: causality <- "CIN" :}; 
+ OBJ  Phosphate_in (* terminal = "in_4" *) "": RateProcess := {: causality <- "CIN" :}; 
+ OBJ  Phosphorus_out (* terminal = "out_1" *)"": Concentration := {: causality <- "COUT" :};
+ OBJ  Phosphate_out (* terminal = "out_1" *)"": Concentration := {: causality <- "COUT" :};
+  };
+ 
+ parameters <-{};
+ 
+ independent <- { };
+ 
+ state <-
+ {
+ OBJ  Phosphate"" : Concentration;
+ OBJ MIX_Phosphate "mixing rate of Phosphate": RateProcess;
+ OBJ AccMix_Pin "Accumulation of mixing Phosphate entering": Real; 
+ OBJ AccMix_Pout "Accumulation of mixing Phosphate exiting": Real;
+ };
+ 
+ equations <-
+ {
+ DERIV(state.Phosphate,[independent.t])= (state.DECOMP_DD + state.DECOMP_PD + state.DECOMP_SD + interface.RESPIRATION_algae + interface.RESPIRATION_animals + interface.EXCRETION_animals) * parameters.P2OM - interface.Assimilation_PO4 + state.MIX_Phosphate;
+ state.MIX_Phosphate = IF ((fabs(parameters.Temperature - parameters.T_strat) > 3) && (parameters.Temperature > 4)) 
+ 			  	   	   	  THEN 0
+				  		  ELSE parameters.QMix * (interface.Phosphate_in - state.Phosphate) / parameters.VTot;
+				   
+ DERIV(state.AccMix_Pin,[independent.t]) = IF ((interface.Phosphate_in - state.Phosphate) < 0)
+ 			  	   						  	    THEN 0
+				   							    ELSE state.MIX_Phosphate;
+ 
+ DERIV(state.AccMix_Pout,[independent.t]) = IF ((interface.Phosphate_in - state.Phosphate) > 0)
+ 			  	   						  	 	THEN 0
+				   							 	ELSE state.MIX_Phosphate;
+																   
+ interface.Phosphorus_out = state.Phosphate;
+ 
+ interface.Phosphate_out = state.Phosphate;
+ 
+ //there is only one form of P and that is PO4, expressed as PO4-P, so in this case PO4 = P
+ 
+ };
+ 
+ :};
+
+ #endif 

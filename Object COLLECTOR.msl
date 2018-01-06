@@ -1,0 +1,179 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTCOLLECTOR
+#define OBJECTCOLLECTOR
+
+CLASS COLLECTOR (* class = "Collect" *)
+
+SPECIALISES PhysicalDAEModelType :=
+ {:
+ interface <- 
+ {
+ //Detritus//
+ OBJ DD (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ PD (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ SD (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ SD_strat (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ 
+ OBJ Nitrogen (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Ammonia (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Nitrate (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Phosphorus (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Phosphate (* terminal = "in_2" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ Extinct (* terminal = "in_2" *) "" : LightExtinct := {: causality <- "CIN" :};
+ 
+ OBJ DD_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ PD_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ SD_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ SD_strat_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ 
+ OBJ Nitrogen_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Ammonia_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Nitrate_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Phosphorus_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Phosphate_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ OBJ Extinct_out (* terminal = "out_1" *) "" : LightExtinct := {: causality <- "COUT" :};
+ 
+ //Bio Process//
+ OBJ MORTALITY_Algae (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ MORTALITY_Grazers (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ MORTALITY_Fish (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ EXCRETION_Algae (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ EXCRETION_Grazers (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ EXCRETION_Fish (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ INGESTION_PD_Grazers (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ INGESTION_PD_Fish (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ SINK_Algae (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ DEFECATION_Grazers (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ DEFECATION_Fish (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ RESPIRATION_Algae (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ RESPIRATION_Grazers (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ RESPIRATION_Fish (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ Assimilation_NH4_Algae (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ Assimilation_NO3_Algae (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ Assimilation_PO4_Algae (* terminal = "in_2" *) "" : RateProcess := {: causality <- "CIN" :};
+ 
+ OBJ MORTALITY_Algae_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ MORTALITY_Animals_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ EXCRETION_Algae_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ EXCRETION_Animals_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ INGESTION_PD_Animals_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ SINK_Algae_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ DEFECATION_Animals_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ RESPIRATION_Algae_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ RESPIRATION_Animals_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ Assimilation_NH4_Algae_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ Assimilation_NO3_Algae_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ OBJ Assimilation_PO4_Algae_out (* terminal = "out_2" *) "" : RateProcess := {: causality <- "COUT" :};
+ 
+ //Bio Algae//
+ OBJ Bio_Algae_in (* terminal = "in_2" *) "" : Concentration [5;]:= {: causality <- "CIN" :};
+ OBJ Bio_Algae_out (* terminal = "out_1" *) "" : Concentration [5;]:= {: causality <- "COUT" :};
+ OBJ Bio_Algae_total_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ 
+ //Bio Grazers//
+ OBJ Bio_Grazers_in (* terminal = "in_2" *) "" : Concentration [5;]:= {: causality <- "CIN" :};
+ OBJ Bio_Grazers_out (* terminal = "out_1" *) "" : Concentration [5;]:= {: causality <- "COUT" :};
+ OBJ Bio_Grazers_total_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ 
+ //Bio Fish//
+ OBJ Bio_Fish_in (* terminal = "in_3" *) "" : Concentration [5;]:= {: causality <- "CIN" :};
+ OBJ Bio_Fish_out (* terminal = "out_1" *) "" : Concentration [5;]:= {: causality <- "COUT" :};
+ OBJ Bio_Fish_total_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ 
+ //Bio Animals//
+ OBJ Bio_Animals_total_out (* terminal = "out_2" *) "" : Concentration := {: causality <- "COUT" :};
+ 
+ //Ingestion Algae//
+ OBJ INGESTION_Algae_in (* terminal = "in_2" *) "": RateProcess[5;]:= {: causality <- "CIN" :};
+ OBJ INGESTION_Algae_out (* terminal = "out_1" *) "": RateProcess[5;]:= {: causality <- "COUT" :};
+ 
+ //Predation//
+ OBJ PREDATION_Grazers_in (* terminal = "in_3" *) "": RateProcess[5;]:= {: causality <- "CIN" :};
+ OBJ PREDATION_Grazers_out (* terminal = "out_1" *) "": RateProcess[5;]:= {: causality <- "COUT" :};
+ 
+ //GameteLoss//
+ OBJ GameteLoss (* terminal = "in_3" *) "": RateProcess := {: causality <- "CIN" :};
+ OBJ GameteLoss_out (* terminal = "out_2" *) "": RateProcess := {: causality <- "COUT" :}; 
+ };
+ 
+ parameters <-
+ { };
+ 
+ independent <- { OBJ t "Time"  : Time; };
+ 
+ state <-
+ { 
+ //Bio//
+ OBJ Bio_Algae_total "total Fish biomass" : Concentration;
+ OBJ Bio_Grazers_total "total biomass" : Concentration;
+ OBJ Bio_Fish_total "total Fish biomass" : Concentration;
+ OBJ Bio_Animals_total "total Fish biomass" : Concentration;
+ };
+ 
+ equations <-
+ {
+ //Detritus//
+ interface.DD_out = interface.DD;
+ interface.PD_out = interface.PD;
+ interface.SD_out = interface.SD;
+ interface.SD_strat_out = interface.SD_strat;
+  
+ interface.Nitrogen_out = interface.Nitrogen;
+ interface.Ammonia_out = interface.Ammonia;
+ interface.Nitrate_out = interface.Nitrate;
+ interface.Phosphorus_out = interface.Phosphorus;
+ interface.Phosphate_out = interface.Phosphate;
+ interface.Extinct_out = interface.Extinct;
+ 
+ interface.GameteLoss_out = interface.GameteLoss;
+ 
+ //Bio process//
+ interface.MORTALITY_Algae_out = interface.MORTALITY_Algae;
+ interface.MORTALITY_Animals_out = interface.MORTALITY_Grazers + interface.MORTALITY_Fish;
+ interface.EXCRETION_Algae_out = interface.EXCRETION_Algae;
+ interface.EXCRETION_Animals_out = interface.EXCRETION_Grazers + interface.EXCRETION_Fish;
+ interface.INGESTION_PD_Animals_out = interface.INGESTION_PD_Grazers + interface.INGESTION_PD_Fish;
+ interface.SINK_Algae_out = interface.SINK_Algae;
+ interface.DEFECATION_Animals_out = interface.DEFECATION_Grazers + interface.DEFECATION_Fish;
+ interface.RESPIRATION_Algae_out = interface.RESPIRATION_Algae;
+ interface.RESPIRATION_Animals_out = interface.RESPIRATION_Grazers + interface.RESPIRATION_Fish;
+ interface.Assimilation_NH4_Algae_out = interface.Assimilation_NH4_Algae;
+ interface.Assimilation_NO3_Algae_out = interface.Assimilation_NO3_Algae;
+ interface.Assimilation_PO4_Algae_out = interface.Assimilation_PO4_Algae;
+ 
+ //Bio Algae//
+ {FOREACH count IN {1 .. 5}: interface.Bio_Algae_out[count] = interface.Bio_Algae_in[count];};
+ 
+ state.Bio_Algae_total = SUMOVER count IN {1 .. 5}: interface.Bio_Algae_in[count];
+ interface.Bio_Algae_total_out = state.Bio_Algae_total;
+ 
+ //Bio Grazers//
+ {FOREACH count IN {1 .. 5}: interface.Bio_Grazers_out[count] = interface.Bio_Grazers_in[count];};
+ 
+ state.Bio_Grazers_total = SUMOVER count IN {1 .. 5}: interface.Bio_Grazers_in[count];
+ interface.Bio_Grazers_total_out = state.Bio_Grazers_total;
+ 
+ //Bio Fish//
+ {FOREACH count IN {1 .. 5}: interface.Bio_Fish_out[count] = interface.Bio_Fish_in[count];};
+ 
+ state.Bio_Fish_total = SUMOVER count IN {1 .. 5}: interface.Bio_Fish_in[count];
+ interface.Bio_Fish_total_out = state.Bio_Fish_total;
+ 
+ //Bio Animals//
+ interface.Bio_Animals_total_out = state.Bio_Fish_total + state.Bio_Grazers_total;
+  
+ //Ingestion//
+ {FOREACH count IN {1 .. 5}: interface.INGESTION_Algae_out[count] = interface.INGESTION_Algae_in[count];};
+ 
+ //Predation//
+ {FOREACH count IN {1 .. 5}: interface.PREDATION_Grazers_out[count] = interface.PREDATION_Grazers_in[count];};
+  };
+ 
+ :};
+
+ #endif 

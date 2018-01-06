@@ -1,0 +1,18 @@
+// -----------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Hans Vangheluwe, Peter Vanrolleghem, Henk Vanhooren, 
+//                  Jurgen Meirlaen,Frederik Decouttere, Youri Amerlinck
+//                  Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/Generic/base definitions
+// --------------------------------------------------- 
+
+#ifndef GENERIC
+#define GENERIC
+
+#include "generic.base.msl"
+#include "generic.quantity.si.msl"
+
+#endif
+
+
+

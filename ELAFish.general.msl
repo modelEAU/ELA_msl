@@ -1,0 +1,136 @@
+// -----------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Hans Vangheluwe, Peter Vanrolleghem, Henk Vanhooren, 
+//                  Jurgen Meirlaen,Frederik Decouttere, Youri Amerlinck
+//                  Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish/General definitions
+//               extending generic modules, category definitions and 
+//               vector (matrix) definitions.
+// -----------------------------------------------------------------------
+
+#ifndef ELAFISH_GENERAL
+#define ELAFISH_GENERAL
+
+// Contains declarations to describe
+// Waste Water Treatment Plants (WWTPs)
+//
+// With this library as a starting point, the modeller 
+// only needs to specify relevant biological components
+// (e.g., H2O, S_S, X_S, ...) as well as Stochiometric
+// and Kinetic conversion information (from IAWQ).
+// Also, any number of terminals (physical flow
+// of matter in/out of a sub-system, but also
+// control and information terminals) may be added to 
+// the model.
+// Once the above are specified, the appropriate model
+// will automatically be expanded. Currently, automatic
+// expansion only takes into account the hydrological,
+// chemical, and biological aspects.
+//
+
+// Number of ... statements
+
+ OBJ NrOfComponents
+  "The number of biological components considered in the WWTP models"
+  : Integer := Cardinality(Components);
+
+ OBJ NrOfReactions
+  "The number of reactions between biological components considered in the WWTP models"
+  : Integer := Cardinality(Reactions);
+
+ // The WWTPTerminal class is a template for the
+ // quantities which will be passed around the system.
+ // As with the Component type declaration, this declaration
+ // may be given at the very end by the user. The appropriate
+ // model will then be expanded.
+ // Note however that, as long as we're only dealing with
+ // biological components flowing around the system (as
+ // declared in TYPE Components), the WWTPTerminal CLASS
+ // below is sufficient !
+ // The following assumptions are made:
+ // 1. The SAME (WWTPTerminal) terminals are used everywhere in
+ //    a configuration.
+ // 2. All terminals of a model have the same cardinality.
+ //    This is enforced thanks to the way we define Components and
+ //     WWTPTerminal.
+ // 3. The number of components in WWTPTerminal is the same as the number of 
+ //    components (columns) in the stoichiometry matrix (which will be 
+ //    defined later on). Again, this is enforced thanks to the way we define 
+ //    Components and WWTPTerminal.
+ //    Note that components which are transported but do not react
+ //    (i.e., only hydraulics, no chemistry nor biology)
+ //    just have a column of zeroes in the stoichiometry matrix.
+ //    This is easy as by default, when a variable was not given a value,
+ //    the initial value is 0. Thus, if we don't assign anything to 
+ //    elements of the stoichiometry matrix, it is a matrix of zeroes,
+ //    which means no chemical/biological reactions take place.
+
+
+// Terminal for Fluxes
+
+ CLASS WWTPTerminal
+ "
+  The variables which are passed between WWTP model building blocks
+  Currently, we only consider a flux of biochemical material
+ "
+ = MassFlux[NrOfComponents;]; 
+
+ CLASS InWWTPTerminal SPECIALISES WWTPTerminal; //used to indicate inflow
+ CLASS OutWWTPTerminal SPECIALISES WWTPTerminal; //used to indicage outflow
+
+// Terminals for Concentrations
+
+ CLASS WWTPConcTerminal 
+  "
+   The variables which are passed between WWTP model building blocks
+   here in concentrations
+  "
+  = Concentration[NrOfComponents;]; 
+
+ CLASS InWWTPConcTerminal SPECIALISES WWTPConcTerminal; //used to indicate inflow concentrations
+ CLASS OutWWTPConcTerminal SPECIALISES WWTPConcTerminal; //used to indicate outflow concentrations
+
+ // These classnames will be used by SelectByType() to determine which terminals
+ // are inflow and which are outflow. This is necessary to automatically
+ // generate the volume conservation law for any number (of inflow)
+ // terminals.
+
+//=====================================================================
+//==================================GLOBAL VARIABLES===================
+//=====================================================================
+
+
+ // Currently, iteration variables are not implicitly
+ // declared as being of the type of the range nor are they
+ // "expanded" as local (to the loop) variables. 
+ // Rather, they have to be declared explicitly.
+
+ OBJ Comp_Index "Temporary iteration variable, index of the component" : Integer;
+ OBJ Reaction_Index "Temporary iteration variable, index of the reaction" : Integer;
+ OBJ In_Comp_Index "Temporary iteration variable, index of the incoming component" : Integer;
+ OBJ Out_Comp_Index "Temporary iteration variable, index of the outgoing component" : Integer;
+ OBJ Terminal "Temporary iteration variable" : WWTPTerminal;
+ OBJ In_Terminal "Temporary iteration variable" : WWTPTerminal;
+ OBJ Out_Terminal "Temporary iteration variable" : WWTPTerminal;
+ OBJ count "Temporary iteration variable" : Integer;
+ 	 					 
+//
+// End of ALL GLOBAL variables
+//
+
+// vector CLASSES defined for general purposes
+// length == NrOfComponents
+// type of elements declared in the class-naming
+// e.g MassVector == vector containing masses
+
+CLASS MassVector = Mass[NrOfComponents;];
+CLASS MassFluxVector = MassFlux[NrOfComponents;];
+CLASS ConcentrationVector = Concentration[NrOfComponents;];
+CLASS SpecificVolumeVector = SpecificVolume[NrOfComponents;];
+CLASS VelocityVector = Velocity[NrOfComponents;];
+CLASS ArealFluxVector = ArealFlux[NrOfComponents;];
+CLASS L_and_B_ConcentrationVector = Concentration[5;];
+
+// End of Vector Classes
+
+#endif // ELAFISH_GENERAL

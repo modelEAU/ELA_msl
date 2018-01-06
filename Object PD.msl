@@ -1,0 +1,48 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTPD
+#define OBJECTPD
+
+
+CLASS PD (* class = "detritus" *) EXTENDS DD WITH
+ {:
+ interface <- 
+ {
+ OBJ INGESTION_PD (* terminal = "in_1" *) "": RateProcess := {: causality <- "CIN" :};
+ OBJ GameteLoss (* terminal = "in_1" *) "": RateProcess := {: causality <- "CIN" :};
+ OBJ PD_out (* terminal = "out_1" *) "": Concentration := {: causality <- "COUT" :};
+ };
+ 
+ parameters <-
+ {
+ OBJ KSed "sedimentation rate": Velocity:={:value<-0.15:};
+ };
+ 
+ independent <- { };
+ 
+ state <-
+ {
+ OBJ SEDIMENTATION "": RateProcess;
+ OBJ DECOMP_PD "remineralisation rate of PD": RateProcess;
+ OBJ PD "particulate detritus": Concentration;
+ };
+ 
+ equations <-
+ {
+ DERIV(state.PD,[independent.t])= interface.GameteLoss + interface.MORTALITY_algae * (1 - parameters.fMORTALITY_algae_DD) + interface.MORTALITY_animals * (1 - parameters.fMORTALITY_animals_DD) - state.DECOMP_PD - state.SEDIMENTATION - interface.INGESTION_PD;
+ 
+ state.DECOMP_PD = parameters.DecayMax_water_PD * state.DOCorrection_water * state.DecTCorr * state.pHCorr * state.PD;
+ 
+ state.SEDIMENTATION = parameters.KSed / parameters.ZMean * state.PD;
+ 
+ interface.PD_out = state.PD; 
+ 
+ };
+ 
+ :};
+
+ #endif 

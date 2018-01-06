@@ -1,0 +1,290 @@
+// -----------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Hans Vangheluwe, Peter Vanrolleghem, Henk Vanhooren, 
+//                  Jurgen Meirlaen,Frederik Decouttere, Youri Amerlinck
+//                  Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish/Base/Controllers
+// -----------------------------------------------------------------------
+
+#ifndef ELAFISH_BASE_CONTROLLERS
+#define ELAFISH_BASE_CONTROLLERS
+
+
+CLASS P
+  (* class = "controller" *)
+  "P controller"
+
+// The value of the manipulated variabele changes proportional to the value 
+// of the error signal.						
+
+  SPECIALISES
+  PhysicalDAEModelType :=
+  {:
+    comments <- "A model for a proportional controller";
+    interface <-
+    {
+      OBJ y_M (* terminal = "in_1" *) "Sensor measured output" : 
+               Real := {: causality <- "CIN" :};
+      OBJ u (* terminal = "out_1" *) "Controlled variable" : 
+               Real := {: causality <- "COUT" :};
+    };
+
+    parameters <-
+    {
+
+    OBJ u0 "No error action" : Real := {: value <- 50 :};
+    OBJ y_S "Setpoint value for controlled variable" : 
+         Real := {: value <- 2 :};
+    OBJ K_P "Factor of proportionality" : 
+         Real := {: value <- 25 :};
+ 
+    };
+
+    independent <- 
+    {
+      OBJ t "Time": Time ;
+    };
+
+    state <-
+     {
+     };
+
+    equations <-
+    {
+
+    interface.u = parameters.K_P * 
+
+      (parameters.y_S - interface.y_M) + 
+        parameters.u0 ;
+
+    };
+  :};
+
+CLASS PI
+  (* class = "controller" *)
+  "PI controller"
+
+// The value of the manipulated variabele changes proportional to the value 
+// of the error signal and to the value of the integral of the error function 
+// in time.						
+
+  SPECIALISES
+  PhysicalDAEModelType :=
+  {:
+    comments <- "A model for a proportional-integral controller";
+    interface <-
+    {
+      OBJ y_M (* terminal = "in_1" *) "Sensor measured output" : 
+               Real := {: causality <- "CIN" :};
+      OBJ u (* terminal = "out_1" *) "Controlled variable" : 
+               Real := {: causality <- "COUT" :};
+    };
+
+    parameters <-
+    {
+    OBJ u0 "No error action" : Real := {: value <- 50 :};
+    OBJ y_S "Setpoint value for controlled variable" : 
+         Real := {: value <- 2 :};
+    OBJ K_P "Factor of proportionality" : 
+         Real := {: value <- 25 :};
+    OBJ T_I "Integral time" : Time := {: value <- 0.1 :}; 
+    };
+
+    independent <- 
+    {
+      OBJ t "Time": Time ;
+    };
+
+    state <-
+     {
+      OBJ e "Error" : PhysicalQuantityType ;
+      OBJ Integ_e "Integral of error" : PhysicalQuantityType ;
+     };
+
+    equations <-
+    {
+     {state.e = parameters.y_S - interface.y_M;};
+
+     {DERIV(state.Integ_e,[independent.t]) = state.e;}; 
+
+     {interface.u = parameters.K_P * 
+     (state.e + (1 / parameters.T_I) * state.Integ_e) +  
+      parameters.u0;};  
+    };   
+  :};
+
+
+CLASS PID
+  (* class = "controller" *)
+  "PID controller"
+  SPECIALISES
+  PhysicalDAEModelType :=
+  {:
+    comments <- "A model for a proportional-integral-derivative controller";
+    interface <-
+    {
+      OBJ y_M (* terminal = "in_1" *) "Sensor measured output" : 
+               Real := {: causality <- "CIN" :};
+      OBJ u (* terminal = "out_1" *) "Controlled variable" : 
+               Real := {: causality <- "COUT" :};
+    };
+
+    parameters <-
+    {
+     
+     OBJ K_P "Factor of proportionality" : Real := {: value <- 11.31977725 :};
+     OBJ T_I "Integral time" : Time := {: value <- 0.5062161847 :};
+     OBJ T_D "Derivative time" : Time := {: value <- 0.2531080923 :};
+     OBJ y_S "Setpoint value for controlled variable" : Real := {: value <- 2 :};
+     OBJ u0 "No error action" : Real := {: value <- 50 :};
+    };
+
+    independent <-
+    {
+     OBJ t "Time": Time
+    };
+
+    state <-
+    {
+     OBJ Integ_e "Integral of error": PhysicalQuantityType ;
+     OBJ e "Error" : PhysicalQuantityType ;
+     OBJ help (* hidden = "1" *) " Previous time help variable" : Time;
+     OBJ Deriv_e  "Derivative of error" : Real;
+     OBJ Prev_t (* hidden = "1" *) : Time;
+    };
+
+    equations <-
+    {
+     state.e = parameters.y_S - interface.y_M;
+  
+     state.help = independent.t;
+
+     state.Deriv_e = IF (state.help == 0)
+			   THEN 0
+			   ELSE (previous(state.e) - state.e) / (previous(state.help) - state.help);
+
+     DERIV(state.Integ_e, [independent.t]) = state.e ;
+
+     interface.u = parameters.u0 +
+                   parameters.K_P * (
+                       state.e +
+                       parameters.T_D * state.Deriv_e +
+                       state.Integ_e / parameters.T_I);
+    };
+  :};
+
+CLASS ConstantRatio
+  (* class = "controller" *)
+  "Ratio controller"
+
+// The value of the manipulated variabele is a ratio of the measured value
+
+  SPECIALISES
+  PhysicalDAEModelType :=
+  {:
+    comments <- "A model for a ratio controller";
+    interface <-
+    {
+      OBJ y_M (* terminal = "in_1" *) "Sensor measured output" :
+               Real := {: causality <- "CIN" :};
+      OBJ u (* terminal = "out_1" *) "Controlled variable" :
+               Real := {: causality <- "COUT" :};
+    };
+
+    parameters <-
+    {
+
+    OBJ ConstantRatio "Ratio between measured value and controller output" :
+         Real := {: value <- 1 :};
+    };
+
+
+    equations <-
+    {
+
+    interface.u = parameters.ConstantRatio * interface.y_M;
+
+    };
+  :};
+
+CLASS OnOff
+  (* class = "controller" *)
+  "On-off controller"
+
+// Purpose:	
+// Switch output between two values.	
+// 
+// Description:	
+// The relay block allows the output to switch between two specified values. 
+// When the relay is on, it remains on until the input drops below the 
+// specified value of 'Input for off'. When the relay is off, it remains off 
+// until the input exceeds the specified value of 'Input for on'. 
+// Selecting an 'Input for on' value greater than the 'Input for off' value 
+// models hysteresis, whereas selecting equal values models a switch with a 
+// threshold at that value. The model for an ideal on/off controller is a 
+// simplification of this model. Note that an ideal on/off controller can 
+// cause oscillations of the error signal. An 'Input for on' value which is 
+// smaller than the 'Input for off' value is not allowed.						
+
+  SPECIALISES
+  PhysicalDAEModelType :=
+  {:
+    comments <- "A model for an on-off controller";
+    interface <-
+    {
+      OBJ y_M (* terminal = "in_1" *) "Sensor measured output" : 
+               Real := {: causality <- "CIN" :};
+      OBJ u (* terminal = "out_1" *) "Controlled variable" : 
+               Real := {: causality <- "COUT" :};
+    };
+
+    parameters <-
+    {
+    OBJ y_S "Setpoint value for controlled variable" : 
+         Real := {: value <- 2 :};
+    OBJ e_Off	"Input for off"	: Real := {: value <- -0.5;
+                                           interval  <- {: lowerBound <- MIN_INF; upperBound <-0 ; :};
+                                        :};
+    OBJ e_On	"Input for on"	: Real := {: value <- 0.5;
+                                        interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+                                     :};
+    OBJ u_Off	"Output when off"	: Real := {: value <- 10 :};
+    OBJ u_On	"Output when on"	: Real := {: value <- 20 :};
+   // e1 <= e2						
+    };
+
+    independent <- 
+    {
+      OBJ t "Time": Time ;
+    };
+
+    state <-
+    {
+     OBJ e "Error" : PhysicalQuantityType ;
+     OBJ help_u (* hidden = "1" *) "Previous u help variable" : Real;
+     OBJ help_t (* hidden = "1" *) "Previous t help variable" : Real;
+    };
+
+    equations <-
+    {
+
+    {state.e = parameters.y_S - interface.y_M;};
+
+
+    state.help_u = interface.u;
+    state.help_t = independent.t;
+    interface.u = IF(state.e < parameters.e_Off)
+                  THEN parameters.u_Off
+                  ELSE
+                    IF (state.e > parameters.e_On)
+                    THEN parameters.u_On
+                    ELSE 
+			    IF (previous(state.help_t) >= independent.t)
+			    THEN parameters.u_On
+			    ELSE previous(state.help_u) ;
+   };
+
+ :};
+
+#endif // ELAFISH_BASE_CONTROLLERS
+

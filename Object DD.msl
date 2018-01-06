@@ -1,0 +1,65 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTDD
+#define OBJECTDD
+
+
+CLASS DD (* class = "detritus" *) EXTENDS LIMITATIONS WITH
+ {:
+ interface <- 
+ {
+ OBJ MORTALITY_algae (* terminal = "in_3" *) "": RateProcess := {: causality <- "CIN" :};
+ OBJ MORTALITY_animals (* terminal = "in_1" *) "": RateProcess := {: causality <- "CIN" :};
+ 
+ OBJ EXCRETION_algae (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ EXCRETION_animals (* terminal = "in_1" *) "" : RateProcess := {: causality <- "CIN" :};
+   
+ OBJ DD_in (* terminal = "in_4" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ DD_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ };
+ 
+ parameters <-
+ {
+ OBJ fMORTALITY_algae_DD "fraction of dead algae that goes to DD": Real:={:value<-0.3:};
+ OBJ fMORTALITY_animals_DD "fraction of dead animals that goes to DD": Real:={:value<-0.3:};
+ };
+ 
+ independent <- {  };
+ 
+ state <-
+ {
+ OBJ DECOMP_DD "remineralisation rate of DD": RateProcess;
+ OBJ DD "dissolved 'detritus' with animal excretion": Concentration;
+ OBJ MIX_DD "mixing rate of DD": RateProcess;
+ OBJ AccMix_DDin "Accumulation of mixing DD entering": Real; 
+ OBJ AccMix_DDout "Accumulation of mixing DD exiting": Real;
+ };
+ 
+ equations <-
+ {
+ DERIV(state.DD,[independent.t])= interface.EXCRETION_algae + interface.EXCRETION_animals + interface.MORTALITY_algae * parameters.fMORTALITY_algae_DD + interface.MORTALITY_animals * parameters.fMORTALITY_animals_DD - state.DECOMP_DD + state.MIX_DD;
+ 
+ state.DECOMP_DD = parameters.DecayMax_water_DD * state.DOCorrection_water * state.DecTCorr * state.pHCorr * state.DD;
+
+ state.MIX_DD = IF ((fabs(parameters.Temperature - parameters.T_strat) > 3) && (parameters.Temperature > 4)) 
+ 			  	   THEN 0
+				   ELSE parameters.QMix * (interface.DD_in - state.DD) / parameters.VTot;
+ 
+ interface.DD_out = state.DD;
+ 
+ DERIV(state.AccMix_DDin,[independent.t]) = IF ((interface.DD_in - state.DD) < 0)
+ 			  	   						  	    THEN 0
+				   							    ELSE state.MIX_DD;
+ 
+ DERIV(state.AccMix_DDout,[independent.t]) = IF ((interface.DD_in - state.DD) > 0)
+ 			  	   						  	 	THEN 0
+				   							 	ELSE state.MIX_DD;
+ };
+ 
+ :};
+
+ #endif 

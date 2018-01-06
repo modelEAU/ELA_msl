@@ -1,0 +1,38 @@
+// -----------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Hans Vangheluwe, Peter Vanrolleghem, Henk Vanhooren, 
+//                  Jurgen Meirlaen,Frederik Decouttere, Youri Amerlinck
+//                  Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// -----------------------------------------------------------------------
+
+#ifndef ELAFISH
+#define ELAFISH
+
+#include "generic.msl"
+
+#include "ELAFish.general.msl"
+#include "ELAFish.definitions.msl"
+
+#include "ELAFish.base.msl"
+#include "ELAFish.quantity.msl"
+#include "ELAFish.base.controllers.msl"
+
+#include "Object LIMITATIONS.msl"
+#include "Object DD.msl"
+#include "Object PD.msl"
+#include "Object SD.msl"
+#include "Object NITROGEN.msl"
+#include "Object PHOSPHORUS.msl"
+#include "Object EXTINCTION.msl"
+
+#include "Object ALGAE.msl"
+#include "Object GRAZER.msl"
+#include "Object PRED.msl"
+
+#include "Object COLLECTOR.msl"
+#include "Object COLLECT_FISH.msl"
+
+#endif 
+
+// *****************************

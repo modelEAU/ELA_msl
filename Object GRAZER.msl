@@ -1,0 +1,230 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTGRAZER
+#define OBJECTGRAZER
+
+CLASS GRAZER (* class = "zoo" *) "" EXTENDS LIMITATIONS WITH 
+ {:
+ interface <- 
+ {
+ OBJ PD (* terminal = "in_3" *) "" : Concentration := {: causality <- "CIN" :};
+ OBJ PD_out (* terminal = "out_1" *) "" : Concentration := {: causality <- "COUT" :};
+ 
+ OBJ Bio_algae (* terminal = "in_3" *) "" : Concentration [5;]:={: causality <- "CIN" :};
+ OBJ Bio_algae_out (* terminal = "out_1" *) "" : Concentration [5;]:={: causality <- "COUT" :};
+ 
+ OBJ PREDATION_in (* terminal = "in_3" *) "" : RateProcess [5;]:= {: causality <- "CIN" :};
+ OBJ PREDATION_out (* terminal = "out_1" *) "" : RateProcess [5;]:= {: causality <- "COUT" :};
+ 
+ OBJ MORTALITY_in (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ MORTALITY_out (* terminal = "out_1" *) "" : RateProcess := {: causality <- "COUT" :};
+ 
+ OBJ EXCRETION_in (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ EXCRETION_out (* terminal = "out_1" *) "" : RateProcess := {: causality <- "COUT" :};
+ 
+ OBJ INGESTION_PD_in (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ INGESTION_PD_out (* terminal = "out_1" *) "" : RateProcess := {: causality <- "COUT" :};
+ 
+ OBJ DEFECATION_in (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ DEFECATION_out (* terminal = "out_1" *) "" : RateProcess := {: causality <- "COUT" :};
+ 
+ OBJ RESPIRATION_in (* terminal = "in_3" *) "" : RateProcess := {: causality <- "CIN" :};
+ OBJ RESPIRATION_out (* terminal = "out_1" *) "" : RateProcess := {: causality <- "COUT" :};
+ 
+ OBJ Bio_grazer_in (* terminal = "in_3" *) "" : Concentration [5;]:= {: causality <- "CIN" :};
+ OBJ Bio_grazer_out (* terminal = "out_1" *) "" : Concentration [5;]:= {: causality <- "COUT" :};
+ 
+ OBJ INGESTION_algae_in (* terminal = "in_3" *) "" : RateProcess [5;]:= {: causality <- "CIN" :};
+ OBJ INGESTION_algae_out (* terminal = "out_1" *) "" : RateProcess [5;]:= {: causality <- "COUT" :};
+  
+ };
+ 
+ parameters <-
+ {
+ OBJ Nr "grazer nr NECESSARY TO FILL IN" : Real:={:value<-1:};
+  
+ //INGESTION//
+ OBJ CMax "max ingestion rate" : RateCst:={:value<-1.2:};
+ 
+ OBJ Pref "preference for algae nr i" : Real[5;];
+ OBJ Pref_PD "preference for PD" : Real:={:value<-1:};
+  
+ OBJ FHalfSat "Half saturation ct for ingestion of algae" : Concentration[5;];
+ OBJ FHalfSat_PD "Half saturation ct for ingestion of PD" : Concentration:={:value<-1:};
+  
+ OBJ Bmin "minimum algae biomass to begin feeding" : Concentration[5;];
+ OBJ Bmin_PD "minimum PD concentration to begin feeding" : Concentration:={:value<-0:};
+  
+ //DEFECATION//
+ OBJ EgestCoeff "egested portion of ingested algae" : Real[5;];
+ OBJ EgestCoeff_PD "egested portion of ingested PD" : Real:={:value<-0:};
+  
+ //RESPIRATION//
+ OBJ RoutineResp "routine respiration rate" : RateCst:={:value<-0.014:};
+ OBJ dKResp "respiratory cost for food processing" : Real:={:value<-0.18:}; 
+ 
+ //EXCRETION//
+ OBJ KExcr "proportionality constant for excretion:respiration" : Real:={:value<-0.17:};
+ 
+ //MORTALITY//
+ OBJ OLIMIT "minimum oxygen concentration" : Concentration:={:value<-1:};
+ OBJ KMort "intrinsic mortality rate" : RateCst:={:value<-0.002:};
+ };
+ 
+ independent <- { };
+ 
+ state <-
+ {
+ OBJ Bio "biomass concentration of grazer nr i" : Concentration;
+ OBJ Bio_grazer "biomass concentration of all grazers" : Real[5;];
+ 
+ //INGESTION//
+ OBJ Food "algae nr i available for feeding" : Concentration[5;];
+ OBJ Food_PD "PD available for feeding" : Concentration;
+  
+ OBJ INGESTION "INGESTION" : RateProcess;
+ OBJ INGESTION_algae "how much this grazer eats from algae i" : RateProcess[5;];
+ OBJ INGESTION_algae_total "how much this grazer eats from algae biomass" : RateProcess;
+ OBJ INGESTION_PD "how much this grazer eats from PD" : RateProcess;
+   
+ OBJ SatFeeding "saturation-algae feeding kinetic factor" : Real[5;];
+ OBJ SatFeeding_PD "saturation-PD feeding kinetic factor" : Real;
+ 
+ OBJ Help "" : Real;
+ OBJ Helpful "" : Real; 
+ 
+ OBJ Preference "preference for algae nr i": Real[5;];
+ OBJ Pref_algae "preference for algae nr i when above Bmin": Real[5;];
+ OBJ Pref_algae_total "total preference for algae biomass when above Bmin": Real;
+ OBJ Preference_PD "preference for PD": Real;
+ OBJ PrefPD "preference for PD when above Bmin": Real;  
+
+ //DEFECATION//
+ OBJ DEFECATION "DEFECATION" : RateProcess;
+ OBJ DEFECATION_algae "defecation of algae nr i consumed by this grazer" : RateProcess[5;];
+ OBJ DEFECATION_algae_total "defecation of algae biomass consumed by this grazer" : RateProcess;
+ OBJ DEFECATION_PD "defecation of PD consumed by this grazer" : RateProcess;
+  
+ //RESPIRATION//
+ OBJ RESPIRATION "RESPIRATION" : RateProcess;
+ OBJ StdResp "standard respiration" : RateProcess;
+ OBJ SpecDynAction "respiration loss for food processing" : RateProcess;
+   
+ //EXCRETION//
+ OBJ EXCRETION "EXCRETION" : RateProcess;
+ 
+ //MORTALITY// 
+ OBJ MORTALITY "INTRINSIC MORTALITY" : RateProcess;
+ OBJ Dpred "environmental mortality rate" : RateCst;
+ };
+ 
+ equations <-
+ {
+ DERIV(state.Bio,[independent.t])= state.INGESTION - state.DEFECATION - state.RESPIRATION - state.EXCRETION - state.MORTALITY - interface.PREDATION_in[parameters.Nr];
+ 
+ {FOREACH count IN {1 .. 5}:interface.INGESTION_algae_out[count] = interface.INGESTION_algae_in[count] + state.INGESTION_algae[count];};
+ interface.PD_out = interface.PD;
+ interface.INGESTION_PD_out = interface.INGESTION_PD_in + state.INGESTION_PD;	   
+ interface.DEFECATION_out = interface.DEFECATION_in + state.DEFECATION; 
+ interface.RESPIRATION_out = interface.RESPIRATION_in + state.RESPIRATION;
+ interface.EXCRETION_out = interface.EXCRETION_in + state.EXCRETION;
+ interface.MORTALITY_out = interface.MORTALITY_in + state.MORTALITY;
+ 
+ state.Bio_grazer[parameters.Nr] = state.Bio;
+ {FOREACH count IN {1 .. 5}:interface.Bio_grazer_out[count] = interface.Bio_grazer_in[count] + state.Bio_grazer[count];};
+ {FOREACH count IN {1 .. 5}:interface.Bio_algae_out[count] = interface.Bio_algae[count];};
+ {FOREACH count IN {1 .. 5}:interface.PREDATION_out[count] = interface.PREDATION_in[count];};
+   
+ //INGESTION//
+ state.INGESTION = state.INGESTION_algae_total + state.INGESTION_PD;
+  
+ //Algae//
+  state.INGESTION_algae_total = SUMOVER count IN {1 .. 5}: state.INGESTION_algae[count];
+ 
+ {FOREACH count IN {1 .. 5}: state.INGESTION_algae[count] = 
+ 		  IF (parameters.CMax * state.SatFeeding[count] * state.Bio * state.TCorr >= state.Food[count])
+ 		  THEN state.Food[count]
+ 		  ELSE parameters.CMax * state.SatFeeding[count] * state.Bio * state.TCorr;};
+ 
+ {FOREACH count IN {1 .. 5}: state.SatFeeding[count] = 
+ 		  IF (state.Pref_algae_total + state.PrefPD <= 0)
+		  THEN 0
+		  ELSE state.Preference[count] * state.Food[count] / (state.Helpful + parameters.FHalfSat[count]);};
+ 					 					  
+ {FOREACH count IN {1 .. 5}: state.Preference[count] = 
+ 		  IF (state.Pref_algae_total + state.PrefPD <= 0)
+		  THEN 0
+		  ELSE parameters.Pref[count] / (state.Pref_algae_total + state.PrefPD);};
+ 
+ {FOREACH count IN {1 .. 5}:state.Pref_algae[count] = 
+ 		  IF (interface.Bio_algae[count] <= parameters.Bmin[count])
+		  THEN 0
+		  ELSE parameters.Pref[count];};
+ 
+ state.Pref_algae_total = SUMOVER count IN {1 .. 5}: state.Pref_algae[count];
+ 
+ state.Helpful = state.Help + state.Preference_PD * state.Food_PD;
+ 
+ state.Help = SUMOVER count IN {1 .. 5}: state.Food[count] * state.Preference[count];
+ 
+ {FOREACH count IN {1 .. 5}:state.Food[count] = 
+ 		  IF (interface.Bio_algae[count] <= parameters.Bmin[count])
+		  THEN 0
+		  ELSE (interface.Bio_algae[count] - parameters.Bmin[count]);};
+ 
+ //PD//
+ state.INGESTION_PD = IF (parameters.CMax * state.SatFeeding_PD * state.Bio * state.TCorr >= state.Food_PD)
+ 		  			  THEN state.Food_PD
+ 		  			  ELSE parameters.CMax * state.SatFeeding_PD * state.Bio * state.TCorr;
+ 
+ state.SatFeeding_PD = state.Preference_PD * state.Food_PD / (state.Helpful + parameters.FHalfSat_PD);
+ 
+ state.Preference_PD = IF (state.Pref_algae_total + state.PrefPD <= 0)
+		  			   THEN 0
+		  			   ELSE parameters.Pref_PD / (state.Pref_algae_total + state.PrefPD);
+					   
+ state.PrefPD = IF (interface.PD <= parameters.Bmin_PD)
+	 	  		 THEN 0
+	 	  		 ELSE parameters.Pref_PD;
+ 
+ state.Food_PD = IF (interface.PD <= parameters.Bmin_PD)
+	 	  	     THEN 0
+	 	  		 ELSE(interface.PD - parameters.Bmin_PD);
+ 
+ //DEFECATION//
+ state.DEFECATION = state.DEFECATION_algae_total + state.DEFECATION_PD; 
+  
+ state.DEFECATION_algae_total = SUMOVER count IN {1 .. 5}: state.DEFECATION_algae[count];
+ 
+ {FOREACH count IN {1 .. 5}: state.DEFECATION_algae[count] = parameters.EgestCoeff[count] * state.INGESTION_algae[count];};
+ 
+ state.DEFECATION_PD = parameters.EgestCoeff_PD * state.INGESTION_PD;
+ 
+ //RESPIRATION//
+ state.RESPIRATION = (state.StdResp + state.SpecDynAction);
+ 
+ state.StdResp = parameters.RoutineResp * state.TCorr * state.Bio;
+ 
+ state.SpecDynAction = parameters.dKResp * (state.INGESTION - state.DEFECATION);
+			 
+ //EXCRETION//
+ state.EXCRETION = parameters.KExcr * state.RESPIRATION;
+ 
+ //MORTALITY//
+ state.MORTALITY = IF (parameters.oxygen_water <= parameters.OLIMIT)
+ 				   THEN 1 * state.Bio
+ 				   ELSE
+ 				   	   IF (state.Dpred > 1)
+                	   THEN	1 * state.Bio
+		    		   ELSE (state.Dpred) * state.Bio;
+ 				
+ state.Dpred = IF (parameters.Temperature > parameters.TMax)
+ 			   THEN parameters.KMort +  exp(parameters.Temperature - parameters.TMax)/2 
+			   ELSE (parameters.KMort);
+ };
+ :};
+ #endif

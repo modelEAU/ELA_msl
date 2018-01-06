@@ -1,0 +1,54 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTEXTINCTION
+#define OBJECTEXTINCTION
+
+
+CLASS EXTINCTION (* class = "detritus" *)
+
+EXTENDS PHOSPHORUS WITH 
+
+ {:
+ interface <- 
+ {
+ OBJ Bio_algae (* terminal = "in_3" *) "total algae biomass": Concentration := {: causality <- "CIN" :};
+ OBJ Extinct_out (* terminal = "out_1" *) "light extinction": LightExtinct := {: causality <- "COUT" :};
+ };
+ 
+ parameters <-
+ {
+ OBJ EcoeffWater "extinction due to pure water" : LightExtinct:={:value<-0.016:};
+ OBJ EcoeffDOM "attenuation coeff for 'diss detritus'" : ExtinctCoeff:={:value<-0.03:};
+ OBJ EcoeffPOM "attenuation coeff for partic detritus" : ExtinctCoeff:={:value<-0.12:};
+ OBJ EcoeffPhyto "attenuation coeff for algae" : ExtinctCoeff:={:value<-0.014:};
+ OBJ EcoeffMacro "attenuation coeff for macrophyte" : ExtinctCoeff:={:value<-0.05:};
+ };
+ 
+ independent <- {  };
+ 
+ state <-
+ {
+ OBJ PhytoExt"extinction due to phytoplankton" :LightExtinct;
+ };
+ 
+ equations <-
+ {
+ interface.Extinct_out = IF ( parameters.EcoeffWater + state.PhytoExt + parameters.EcoeffDOM * state.DD + parameters.EcoeffPOM * state.PD > 25)
+ 				   	 THEN 25
+ 					 ELSE
+ 					 	 IF (parameters.EcoeffWater + state.PhytoExt + parameters.EcoeffDOM * state.DD + parameters.EcoeffPOM * state.PD < 0.000000001)
+						 THEN 0.000000001
+ 					 ELSE parameters.EcoeffWater + state.PhytoExt + parameters.EcoeffDOM * state.DD + parameters.EcoeffPOM * state.PD;
+  
+ state.PhytoExt = parameters.EcoeffPhyto * interface.Bio_algae;
+ };
+ :};
+
+ #endif 
+
+ 
+ 

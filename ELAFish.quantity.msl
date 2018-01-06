@@ -1,0 +1,476 @@
+// -----------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Hans Vangheluwe, Peter Vanrolleghem, Henk Vanhooren, 
+//                  Jurgen Meirlaen,Frederik Decouttere, Youri Amerlinck
+//                  Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish/Quantity definitions
+// -----------------------------------------------------------------------
+
+#ifndef ELAFISH_QUANTITY
+#define ELAFISH_QUANTITY
+
+// Contains class definitions for the WWTP domain quantities.
+// This is far more messy than the equivalent quantity definitions
+// for electrical, mechanical, ... domains.
+//
+// Rather than using concentrations, the generic models
+// are expressed in terms of masses and fluxes:
+
+ CLASS MassFlux
+ "Mass per time unit"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity  <- "MassFlux";
+  unit      <- "g/d";
+  interval  <- {: lowerBound <- MIN_INF; upperBound <- PLUS_INF :};
+  nature <- "THROUGH";
+ :};
+
+ CLASS ArealFlux
+ "Mass per unit of surface and per unit of time"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "ArealFlux";
+  unit     <- "g/(m2*d)";
+  interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF :};
+ :};
+
+// ASM1
+
+// stoichiometric parameters
+
+  CLASS YieldForAutotrophicBiomass
+  "A class for YieldForAutotrophicBiomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "Y_A";
+    unit      <- "gCOD/gN";
+    interval  <- {: lowerBound <- 0; upperBound <- 4.57 :};
+  :};
+
+  CLASS YieldForHeterotrophicBiomass
+  "A class for YieldForHeterotrophicBiomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "Y_H";
+    unit      <- "gCOD/gCOD";
+    interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+  :};    
+
+  CLASS FractOfBiomassLeadingToPartProd
+  "Fraction of biomass leading to particulate products"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "F_P";
+    unit      <- "-";
+    interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+  :};    
+
+  CLASS MassOfNitrogenPerMassOfCODInBiomass
+  "Mass of N per mass of COD in biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "I_XB";
+    unit      <- "gN/gCOD";
+    interval  <- {: lowerBound <- 0; upperBound <- 0.2 :};
+  :};    
+
+  CLASS MassOfNitrogenPerMassOfCODInProdFromBiomass
+  "Mass of N per mass of COD in products from biomass" 
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "I_XP";
+    unit      <- "gN/gCOD";
+    interval  <- {: lowerBound <- 0; upperBound <- 0.2 :};
+  :};    
+
+// kinetic parameters
+
+  CLASS MaxSpecifGrowthRateHetero
+  "Maximum specific growth rate for heterotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "Mu_H";
+    unit      <- "1/d";
+    interval  <- {: lowerBound <- 0; upperBound <- 20 :};
+  :};    
+
+  CLASS MaxSpecifGrowthRateAutotr
+  "Maximum specific growth rate for autotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "Mu_A";
+    unit      <- "1/d";
+    interval  <- {: lowerBound <- 0; upperBound <- 5 :};
+  :};    
+
+  CLASS HalfSatCoeff
+  "Half-saturation coefficient"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_";
+    unit      <- "gCOD/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- 1000000 :};
+  :};    
+
+  CLASS HalfSatCoeffForHetero
+  "Half-saturation coefficient for heterotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_S";
+    unit      <- "gCOD/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- 100 :};
+  :};    
+
+  CLASS OxygenHalfSatCoeffForHetero
+  "Oxygen half-saturation coeff for heterotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_OH";
+    unit      <- "gO2/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- 10 :};
+  :};    
+
+  CLASS NitrateHalfSatCoeffForDenitrifHetero
+  "Nitrate half-saturation coeff for denitrifying heterotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_NO";
+    unit      <- "gNO3-N/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- 2 :};
+  :};    
+
+  CLASS OxygenHalfSatCoeffForAutotr
+  "Oxygen half-saturation coeff for autotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_OA";
+    unit      <- "gO2/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- 10 :};
+  :};    
+
+  CLASS AmmonHalfSatCoeffForAutotr
+  "Ammonium half saturation coeff for autotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_NH";
+    unit      <- "gNH3-N/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- 10 :};
+  :};
+
+  CLASS HalfSatCoeffForHydrolSlowBioDegradeSubstr
+  "Half saturation constant for hydrolysis of slowly biodegradable substrate"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_X";
+    unit      <- "gCOD/gCOD";
+    interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+  :};
+
+  CLASS MaxSpecificHydrolysisRate
+  "Maximum specific hydrolysis rate"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_h";
+    unit      <- "gCOD/(gCOD*d)";
+    interval  <- {: lowerBound <- 0; upperBound <- 25 :};
+  :};    
+
+  CLASS AmmonificationRate
+  "Ammonification rate"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "K_a";
+    unit      <- "m3/(gCOD*d)";
+    interval  <- {: lowerBound <- 0; upperBound <- 0.25 :};
+  :};    
+
+  CLASS DecayCoeffHeterotr
+  "Decay coefficient for heterotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "B_H";
+    unit      <- "1/d";
+    interval  <- {: lowerBound <- 0; upperBound <- 25 :};
+  :};    
+
+  CLASS DecayCoeffAutotr
+  "Decay coefficient for autotrophic biomass"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "B_A";
+    unit      <- "1/d";
+    interval  <- {: lowerBound <- 0; upperBound <- 25 :};
+  :};    
+
+// ASM2
+
+  CLASS DissolvedComponent
+  "A class for dissolved components
+  change quantity in object to specialize
+  e.g. SO2 for dissolved oxygen"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "S";
+    unit      <- "g/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF :};
+    nature <- "ACROSS";
+  :};    
+
+  CLASS ParticulateComponent
+  "A class for particulate component
+  same remark as for DissolvedComponent"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "X";
+    unit      <- "g/m3";
+    interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF :};
+    nature <- "ACROSS";
+  :};    
+
+  CLASS ConversionFactor
+  "A class for typical conversion factors for continuity equations
+   from ASM2"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "I";
+    unit      <- "g/gCOD";
+    interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+  :};
+
+  CLASS NitrogenConversionFactor
+  "A class for typical conversion factors of Nitrogen for continuity equations
+   from ASM2"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "I";
+    unit      <- "gN/gCOD";
+    interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+  :};
+
+  CLASS PhosphorusConversionFactor
+  "A class for typical conversion factors of Phosphorus for continuity equations
+   from ASM2"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "I";
+    unit      <- "gP/gCOD";
+    interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+  :};
+    
+  CLASS MaxGrowthRate
+  "Maximum growth rate"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "Mu";
+    unit      <- "1/d";
+    interval  <- {: lowerBound <- 0; upperBound <- 20 :};
+  :};    
+
+  CLASS RateConstant
+  "Rate constant"
+  SPECIALISES PhysicalQuantityType :=
+  {:
+    quantity  <- "Q_or_B_or_K";
+    unit      <- "1/d";
+    interval  <- {: lowerBound <- 0; upperBound <- 20 :};
+  :};    
+
+ CLASS Yield
+ "A class for Yield"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "Yield";
+  unit     <- "-";
+  interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF:};
+ :};
+
+ CLASS GrowthRate
+ "GrowthRate"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "GrowthRate";
+  unit     <- "1/d";
+  interval  <- {: lowerBound <- 0; upperBound <- 20:};
+ :};
+
+ CLASS Fraction
+ "Fraction"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "Fraction";
+  unit     <- "-";
+  interval  <- {: lowerBound <- 0; upperBound <- 1:};
+ :};
+
+ CLASS SaturationCoefficient
+ "Saturation coefficient"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "K";
+  unit     <- "-";
+  interval  <- {: lowerBound <- 0; upperBound <- 100:};
+ :};
+
+ CLASS DecayCoefficient
+ "Decay coefficient"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "B";
+  unit     <- "1/d";
+  interval  <- {: lowerBound <- 0; upperBound <- 20:};
+ :};
+
+ CLASS CorrectionFactor
+ "CorrectionFactor"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "eta";
+  unit     <- "-";
+  interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+ :};
+
+ CLASS ReductionFactor
+ "Reductionfactor"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "eta";
+  unit     <- "-";
+  interval  <- {: lowerBound <- 0; upperBound <- 1 :};
+ :};
+
+ CLASS MaxSpecAmmonRate
+ "Maximum specific ammonification rate"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "MaxSpecAmmonRate";
+  unit     <- "m3/(gCOD*d)";
+  interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF:};
+ :};
+
+ CLASS OxygenTransferCoefficient
+ "Oxygen Transfer Coefficient"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "Kla";
+  unit     <- "1/d";
+  interval  <- {: lowerBound <- 0; upperBound <- 5000 :};
+ :};
+
+CLASS OxygenUptakeRate
+ "Oxygen Uptake Rate"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+  quantity <- "OUR";
+  unit     <- "g/(m3.d)";
+ :};
+
+CLASS ElectricalEnergy
+   "A class for electrical energy"
+   SPECIALISES PhysicalQuantityType := 
+   {:
+    quantity  <- "Electrical energy";
+    unit      <- "kWh";
+    :};
+
+CLASS Dollar
+   "dollars"
+   SPECIALISES PhysicalQuantityType := 
+   {:
+    quantity  <- "dollar";
+    unit      <- "$";
+    :};
+
+CLASS Euro
+   "Euro"
+   SPECIALISES PhysicalQuantityType := 
+   {:
+    quantity  <- "euro";
+    unit      <- "E";
+    :};
+
+ CLASS HenryCoefficient
+ "A class for the Henry coefficient"
+ SPECIALISES PhysicalQuantityType := 
+ {:
+  quantity    <- "HenryCoefficient";
+  unit        <- "atm.m3.Mol-1";
+  interval    <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :};
+
+ CLASS MassOfNitrogenPerMassOfCOD
+ "Mass of N per mass of COD"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+   quantity  <- "I_";
+   unit      <- "gN/gCOD";
+   interval  <- {: lowerBound <- 0; upperBound <- 0.2; :};
+ :};    
+
+ CLASS MolarHalfSatCoeff
+ "Half-saturation coefficient for components expressed in mol.m-3"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+   quantity  <- "K_S_";
+   unit      <- "Mol.m-3";
+   interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :};    
+
+ CLASS InhibitionCoeff
+ "Inhibition coefficient for components expressed in g.m-3"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+   quantity  <- "K_I_";
+   unit      <- "g.m-3";
+   interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :};   
+
+ CLASS MolarInhibitionCoeff
+ "Inhibition coefficient for components expressed in mol.m-3"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+   quantity  <- "K_I_";
+   unit      <- "Mol.m-3";
+   interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :};    
+
+ CLASS TemperatureCoefficient
+ "Temperature coefficient for reaction rate"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+   quantity  <- "TemperatureCoefficient";
+   unit      <- "-";
+   interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :};
+
+ CLASS MolConcentration
+ "Concentration in Mol per m3"
+ SPECIALISES PhysicalQuantityType :=
+ {:
+   quantity  <- "MolConcentration";
+   unit      <- "Mol.m-3";
+   interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :}; 
+ 
+ CLASS MolFlowRate
+ "Gas flow rate in Mol per day"
+ SPECIALISES PhysicalQuantityType :=
+ {: 
+   quantity  <- "MolFlowRate";
+   unit      <- "Mol.d-1";
+   interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :};
+
+ CLASS GasFlowRate
+ "Gas flow rate in m3 per day"
+ SPECIALISES PhysicalQuantityType :=
+ {: 
+   quantity  <- "GasFlowRate";
+   unit      <- "m3.d-1";
+   interval  <- {: lowerBound <- 0; upperBound <- PLUS_INF; :};
+ :};
+
+#endif
+
+
+

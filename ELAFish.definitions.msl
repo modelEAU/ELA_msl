@@ -1,0 +1,106 @@
+// -----------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Hans Vangheluwe, Peter Vanrolleghem, Henk Vanhooren, 
+//                  Jurgen Meirlaen,Frederik Decouttere, Youri Amerlinck
+//                  Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish/General definitions
+//               extending generic modules, category definitions and 
+//               vector (matrix) definitions.
+// -----------------------------------------------------------------------
+
+#ifndef ELAFSIH_DEFINITIONS1
+#define ELAFISH_DEFINITIONS1
+
+ // The following Components TYPE declaration is commented
+ // as it will be specified further on.
+ // As the order of declarations does not matter in MSL,
+ // the actual place of declaration of the Components TYPE 
+ // does not matter. 
+ // We already present a TYPE Components definition here
+ // as it will make the rest of the generic model
+ // easier to understand.
+
+ // In the Components type declaration, the user indicates
+ // which components will be used in his/her models.
+ // A number of assumptions are made:
+ //  1. In one system, ALL the connections between
+ //     sub-models pass exactly those biological components
+ //     indicated in the Components declaration.
+ //  2. In a physical flow, ALL components are explicitly
+ //     considered: H2O, dissoved gasses, solids in suspension, ...
+ //     The usual assumption that the concentration of H2O is 1
+ //     and all the other concentrations are infinite will be put in 
+ //     further. This, to allow modelling of systems where
+ //     the above assumption is not valid.
+
+ // EVERYTHING is deduced from the Components type declaration !
+ // From this declaration, appropriate models will be expanded
+ // automatically.
+ //
+ // As a convention, the component H2O is always written first
+ // as it is the "main" component in a wWtp.
+ // next in line are solubles. followed by particulates
+
+//===================================================================
+//==========================Begin of components & reactions def.=====
+//===================================================================
+
+ // The components definition.
+ // Here, the user specifies which components will be considered.
+ // This will define the size of the wwtp terminal (through NrOfComponents, see above)
+ // Please note that the sequence of elements in the ComponentsVector
+ // is of importance !!! This sequence is used in certain models to achieve
+ // model re-usability.
+ // The sequence (for this modelbase) has to be:
+ // H2O
+ // S_I S_S .. S_NH S_ALK
+ // X_I X_S .. X_P X_ND
+ // the safest place to add compenents is in the middle of every subset !!!
+
+ // Note that also the aeration process, a mass transport process,
+ // is considered to be a conversion process !!!
+
+#ifndef ELAFISH_DEFINITIONSASM1
+#define ELAFISH_DEFINITIONSASM1
+
+TYPE Components
+"
+The biological components considered in the WWTP models
+"
+	= ENUM {H2O, 
+		S_I, 
+		S_S, 
+		S_O, 
+		S_NO, 
+		S_ND, 
+		S_NH, 
+		S_ALK, 
+		X_I, 
+		X_S, 
+		X_BH, 
+		X_BA, 
+		X_P, 
+		X_ND, 
+		};
+
+TYPE Reactions
+"
+The reactions between biological components considered in the WWTP models
+"
+	= ENUM {AerGrowthHetero, 
+		AnGrowthHetero, 
+		AerGrowthAuto, 
+		DecayOfHetero, 
+		DecayOfAuto, 
+		AmmonOfSolOrgN, 
+		HydrolOfEntrOrg, 
+		HydrolOfEntrOrgN, 
+		Aeration, };
+
+#endif //ELAFISH_DEFINITIONSASM1
+
+//================================================================
+//==========================end of defining comp & react==========
+//================================================================
+
+#endif // ELAFISH_DEFINITIONS1

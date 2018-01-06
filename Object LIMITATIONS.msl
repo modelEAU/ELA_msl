@@ -1,0 +1,112 @@
+// ---------------------------------------------------------------------------
+//  HEMMIS - Ghent University, BIOMATH - Université Laval, modelEAU
+//  Implementation: Peter Vanrolleghem, Frederik De Laender, Ludiwine Clouzot.
+//  Description: MSL-USER/ELAFish
+// ---------------------------------------------------------------------------
+
+#ifndef OBJECTLIMITATIONS
+#define OBJECTLIMITATIONS
+
+
+
+CLASS LIMITATIONS (* class = "detritus" *)
+
+SPECIALISES PhysicalDAEModelType :=
+ {:
+ interface <- 
+ {};
+ 
+ parameters <-
+ {
+ OBJ N2OM " N:organic matter ratio" : Real:={:value<-0.079:};
+ OBJ P2OM " P:O.M ratio" : Real:={:value<-0.018:}; 
+ OBJ ZMean "mean depth of basin" : Length:={:value<-4.5:};
+ OBJ VTot "volume of the lake": Volume:={:value<-1755103:};
+ OBJ VStrat "volume of the stratified layer": Volume:={:value<-1317185:};
+ OBJ VOffShore "volume of the off-shore stratified layer (equal to zero for hypo)": Volume:={:value<-795000:};
+ OBJ DepthBottom " max depth of bottom" : Length:={:value<-14.2:};
+ OBJ DepthTop " depth of top layer (zero)" : Length:={:value<-0.0001:};
+ OBJ WaterSed "1 / depth of water-sediment interface volume": LightExtinct:={:value<-10:};
+ OBJ Temperature " temp" : CelsiusTemperature:={:value<-20:};
+ OBJ T_strat " temp in the other stratified layer" : CelsiusTemperature:={:value<-20:};
+ OBJ oxygen_bottom "oxygen content at sediment-water interface" : Concentration:={:value<-0:};
+ OBJ oxygen_water "oxygen content at water column" : Concentration:={:value<-7:};
+ OBJ QMix "mixing flow between layers" : FlowRate:={:value<-1317185:};
+ 
+ OBJ HalfSatO_bottom "half interfacial saturation constant for oxygen at water-sediment interface" :Concentration:={:value<-0.5:};
+ OBJ HalfSatO_water "half interfacial saturation constant for oxygen at water column" :Concentration:={:value<-0.5:};
+ OBJ DecayMax_bottom "max interfacial remineralisation rate of detritus at water-sediment interface": Velocity:={:value<-0.004:};
+ OBJ DecayMax_water_PD "max remineralisation rate of particulate OM at water column": RateCst:={:value<-0.04:};
+ OBJ DecayMax_water_DD "max remineralisation rate of dissolved OM at water column": RateCst:={:value<-0.29:};
+ OBJ TMax "max temp tolerated. Tmax > Topt" :CelsiusTemperature:={:value<-30:};
+ OBJ TMax_remin "max temp for remineralization" :CelsiusTemperature:={:value<-65:};
+ OBJ TObs "temperature at which known rate constant was measured" :CelsiusTemperature:={:value<-25:};
+ OBJ TOpt "optimum temperature. Topt < Tmax" :CelsiusTemperature:={:value<-20:};
+ OBJ TRef "minimum adaptation temp" :CelsiusTemperature:={:value<-2:};
+ OBJ Q10 "Temp. Response Slope" :Real:={:value<-2:};
+ OBJ ph "pH" :pH:={:value<-7:};
+ OBJ pHMax " max pH tolerated" :pH:={:value<-8.5:};
+ OBJ pHMin "min pH tolerated" :pH:={:value<-5:};
+ OBJ XM "maximum acclimation allowed" :CelsiusTemperature:={:value<-2:};
+ OBJ KT "coefficient for decreasing acclimation as temperature approaches Tref" :Real:={:value<-0.5:};
+ };
+ 
+ independent <- { OBJ t "Time"  : Time; };
+ 
+ state <-
+ {
+ OBJ pHCorr "pH correction for all processes" :Real;
+ OBJ TCorr "T correction for all processes" :Real;
+ OBJ DecTCorr "T correction for remineralisation" :Real;
+ OBJ DOCorrection_bottom "DO correction for all processes at water-sediment interface" :Real;
+ OBJ DOCorrection_water "DO correction for all processes at water column" :Real;
+ OBJ Theta "helping var" :Real;
+ OBJ VT "helping var" :Real;
+ OBJ XT "helping var" :Real;
+ OBJ Acclimation "temp acclimation" :Real;
+ OBJ WT "helping var" :Real;
+ OBJ YT "helping var" :Real;
+ };
+ 
+ equations <-
+ {
+ state.TCorr = IF (state.VT < 0)
+ 			   THEN 0
+			   ELSE pow(state.VT, state.XT) * exp (state.XT * (1-state.VT));
+ 
+ state.VT = ((parameters.TMax + state.Acclimation) - parameters.Temperature)/((parameters.TMax + state.Acclimation) - (parameters.TOpt + state.Acclimation));
+ state.XT = pow(state.WT,2) * pow(1 + pow(1 + 40 / state.YT, 0.5),2) / 400;
+ state.WT = log(parameters.Q10) * ((parameters.TMax + state.Acclimation) - (parameters.TOpt + state.Acclimation));
+ state.YT = log(parameters.Q10) * ((parameters.TMax + state.Acclimation) - (parameters.TOpt + state.Acclimation) + 2);
+ 
+ state.Acclimation = IF (parameters.Temperature - parameters.TRef > 0)
+			 	     THEN parameters.XM * (1 - exp(-parameters.KT * fabs(parameters.Temperature - parameters.TRef)))
+			 		 ELSE - parameters.XM * (1 - exp(-parameters.KT * fabs(parameters.Temperature - parameters.TRef)));
+			 
+ state.pHCorr = IF (parameters.ph > parameters.pHMax)
+			   THEN exp (parameters.pHMax - parameters.ph)
+			   ELSE			  
+			  	  IF (parameters.ph <= parameters.pHMin)
+				  THEN exp (parameters.ph - parameters.pHMax)
+			   ELSE 1;  
+				  
+ state.DOCorrection_bottom = parameters.oxygen_bottom / (parameters.HalfSatO_bottom + parameters.oxygen_bottom);
+
+ state.DOCorrection_water = parameters.oxygen_water / (parameters.HalfSatO_water + parameters.oxygen_water);
+
+ state.DecTCorr = IF (parameters.Temperature > parameters.TMax_remin)
+			   	 THEN 0
+			  	 ELSE pow(state.Theta,parameters.Temperature - parameters.TObs); 
+ 
+ state.Theta = IF (parameters.Temperature > 19)
+ 			  THEN 1.047
+			  ELSE 1.185 - parameters.Temperature / (1/0.00729);	
+  };
+ 
+ :};
+
+ #endif 
+
+ 
+ 
+
